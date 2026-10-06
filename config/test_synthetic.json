@@ -1,0 +1,9 @@
+{
+  "ipc_port": 8080,
+  "database_label": "SYNTHETIC TEST DATA (not real)",
+  "method_name": "Test EF method",
+  "linking": {"provider_linking": "ONLY_DEFAULTS", "prefer_unit_processes": false},
+  "processes": {"process_types": ["LCI_RESULT"], "exclude_category_prefixes": ["Dummy"]},
+  "output_dir": "output/test_synthetic",
+  "csv_significant_figures": 6
+}

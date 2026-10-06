@@ -1,52 +1,185 @@
-# openLCA Extraction Pipeline (Pilot)
+# openLCA extraction pipeline
 
-## What this does
-Connects to a running openLCA IPC server, calculates life cycle impact
-results for a fixed reference amount (1 unit) per process, and exports
-the results as a flat CSV: one row per process x impact category.
+Turns an openLCA database into flat, per-unit LCIA tables (CSV plus JSON)
+with the dataset's own metadata: one value per process, per impact
+category, for exactly **1 reference unit** of the process (1 kg, 1 MJ,
+1 t*km ...), with that unit written on every row.
 
-## Database used
-ELCD 3.2 (GreenDelta correction release, 2022-09-08), free database via
-openLCA Nexus. Used as a stand-in for EF 3.1 while free/individual
-access to the official EF 3.1 database is confirmed with GreenDelta.
-Swapping to EF 3.1 later only requires updating the process/product
-system UUIDs and method ID in extract_ef.py, no other code changes.
+Target database: Environmental Footprint (EF) 3.1. Until a complete EF 3.1
+export is available, development uses ELCD 3.2 as a stand-in.
 
-## Method used
-EF 3.0 Method (adapted), from the openLCA LCIA Methods v2.8.2 package
-(also free via Nexus). Chosen as the closest available EF-family method
-bundled for free with this database.
+## Status (October 2026)
 
-## Key technical finding: product systems, not bare processes
-Calculating directly against a process UUID only returns that process's
-own direct flows. It does not resolve linked upstream processes (in
-ELCD, these show as "Dummy_" providers on inputs/outputs). To get a
-complete result matching openLCA's own "Direct calculation" button, you
-must first build a Product System from the process (File > right-click
-process > Create product system, with Auto-link processes enabled),
-then calculate against that Product System's UUID instead.
+| Item | State |
+|---|---|
+| Extractor (`extract_ef.py`) | Rewritten. Config driven, resumable, logs failures. Tested end to end on a synthetic database (`tests/smoke_test.sh`). |
+| Headless openLCA (no GUI) | Working: restore `.zolca`, import ILCD, run the IPC server (`olca.sh`). Tested with openLCA 2.6.2 libraries. |
+| ELCD 3.2 numbers | **Not yet regenerated** with the new extractor. The old pilot CSV is kept in `archive/` for reference only. |
+| Linking rule | Working hypothesis: `ONLY_DEFAULTS` (see "Calculation" below). Must be confirmed on ELCD with `ab_test.py`. |
+| EF 3.1 | **Blocked.** The shared export has only `contacts`, `external_docs`, `lciamethods`, `sources`. It has no `processes`, `flows`, `flowproperties`, `unitgroups`, so nothing can be calculated, and the LCIA method cannot be imported either because its factors point to the missing flow files. |
 
-## Normalization
-All results are calculated for amount = 1 of the process's own declared
-reference unit (e.g. 1 MJ for electricity, not 1 kWh or an arbitrary
-batch size). This matches the project's core requirement: one row per
-process should represent exactly one physical reference unit.
+## Quick start
 
-## Validation
-Electricity grid mix 1kV-60kV, EU-27, Climate change - Fossil:
-  - openLCA GUI (Direct calculation, EF 3.0 Method (adapted)): 3.2997924359549473 kg CO2 eq
-  - Pipeline output (product system, amount=1): 0.9166090099874854 kg CO2 eq
-  - Ratio: exactly 3.6 (the process's own reference amount is 3.6 MJ = 1 kWh)
-  - Confirms: pipeline correctly normalizes to 1 unit; GUI default
-    calculates for the process's full declared batch size instead.
+```bash
+./setup.sh                                  # Java 21 + openLCA libraries + Python client
+./olca.sh restore ~/elcd_3_2.zolca elcd     # or: ./olca.sh import-ilcd ef31.zip ef31
+./olca.sh server elcd                       # IPC server on port 8080, in the background
+python3 list_records.py ImpactMethod        # find the exact method name
+python3 ab_test.py --method "EF 3.0 Method (adapted)" 83d4634c-b70f-4bb3-8552-1cca6f6359b4
+python3 extract_ef.py config/elcd_pilot.json
+./olca.sh stop
+```
 
-## Columns in ef31_pilot.csv
-process_name, product_system_id, ref_amount, impact_category,
-impact_value, impact_unit, database, method
+`./tests/smoke_test.sh` checks the whole chain without any real data.
+
+The openLCA desktop app is optional (`./setup.sh --gui`). It is only
+needed to compare single values against the GUI. `olca.sh` uses the same
+data folder as the desktop app (`~/openLCA-data-1.4`), so databases are
+shared, but a database can be open in only one program at a time.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `extract_ef.py` | The pipeline. `python3 extract_ef.py <config.json>` |
+| `config/*.json` | Which database label, method, linking, processes and output folder to use |
+| `ab_test.py` | Compares linking options for the same process and shows top contributors |
+| `check_ilcd.py` | Says whether an ILCD export is complete before importing it |
+| `list_records.py` | Lists methods/processes with location and category, to pick UUIDs safely |
+| `olca.sh`, `tools/` | Headless openLCA: restore, import, counts, server start/stop |
+| `setup.sh` | One-command setup (also run automatically for a new Codespace) |
+| `geography_names.csv` | Location code to full name (ISO 3166 countries plus ILCD/EF regions) |
+| `tests/` | Synthetic database and smoke test |
+
+## Calculation
+
+For every selected process the extractor:
+
+1. reads the process and its quantitative reference exchange (flow, unit, amount),
+2. builds a temporary product system with the configured provider linking,
+3. calculates for `amount = 1` with the reference **unit set explicitly**,
+4. stores all impact categories, then deletes the temporary product system.
+
+What was verified directly on the openLCA 2.6.2 engine (synthetic data):
+
+- Calculating a process "directly" is **not** a bare calculation: openLCA
+  links providers on the fly. So the old claim "bare processes miss
+  upstream, you must use product systems" was wrong. The difference that
+  matters is the **provider linking** setting.
+- With `ONLY_DEFAULTS` and no default providers, only the process itself
+  is calculated. Other linking options pull in any process that produces
+  the dataset's product inputs.
+- Setting the unit explicitly works: 1 kWh is converted to 3.6 MJ demand.
+
+Why linking matters: ELCD and EF datasets are mostly aggregated
+"LCI result" datasets, which already contain their whole supply chain.
+Linking more providers to their inputs adds those supply chains a second
+time. That is the leading explanation for the implausible electricity
+values in the first pilot (EU-27 grid mix 3.30 kg CO2 eq per kWh in the
+GUI, a GUI contribution chart dominated by container glass), but it is
+**not proven yet**. `ab_test.py` on ELCD settles it.
+
+Every impact row carries `reference_process_share`: the share of the
+value that comes from the process itself. For an aggregated dataset it
+should be 1. Anything clearly below 1 means linked providers were added.
+
+## Outputs (in `output_dir`)
+
+| File | Content |
+|---|---|
+| `impacts.csv` | One row per process x impact category (long format) |
+| `process_metadata.csv` | One row per process with all descriptive fields, join on `process_id` |
+| `impact_categories.csv` | Method name, version, description and every impact category with unit and description |
+| `exchange_uncertainty.csv` | Uncertainty distributions of the dataset's exchanges, where the dataset has them |
+| `processes.json` | Everything above in one nested file, values at full precision |
+| `processes.jsonl`, `failures.jsonl` | Working files: one line per finished or failed process (the resume state) |
+| `run_summary.json` | Counts of processes succeeded and failed, failed IDs |
+| `run.log` | Progress log |
+
+### `impacts.csv` columns
+
+| Column | Meaning |
+|---|---|
+| `process_id` | Original dataset UUID from the source database (stable, not generated here) |
+| `process_name` | Dataset name |
+| `geography`, `location_code` | Full location name and its code (for example `Italy`, `IT`) |
+| `ref_amount`, `ref_unit` | Always `1` of `ref_unit`: the value is per 1 MJ, 1 kg, ... |
+| `ref_flow_name`, `ref_flow_property` | The reference product and the quantity it is measured in |
+| `impact_category`, `impact_value`, `impact_unit` | The result |
+| `method_name`, `method_version`, `database` | Where the number comes from |
+| `reference_process_share` | Diagnostic, see "Calculation" |
+| `impact_category_id` | Join key to `impact_categories.csv` |
+
+No openLCA-generated IDs are exported. Product systems are temporary and
+deleted after each calculation.
+
+### `process_metadata.csv` highlights
+
+Dataset version and last change, process type, category path, reference
+flow and the dataset's own reference amount (`dataset_ref_amount`, for
+example 3.6 MJ), validity dates, **citation** (from the publication Source
+record) and all cited **sources**, data generator, documentor and owner,
+reviews, copyright flag, restrictions text, data quality system and entry,
+uncertainty summary, and every documentation text field: technology, time,
+geography, intended application, inventory method (system boundary and
+modelling approach), modelling constants, data selection, data treatment,
+data collection, completeness, sampling, project, use advice.
+
+Any field the dataset does not fill is written as `not provided`, never
+left out silently. `geography_source` says whether the full name came
+from the database or from `geography_names.csv` (ILCD imports carry only
+codes).
+
+## Number format
+
+- CSV values have **6 significant figures**, a **dot** as decimal separator
+  and may use scientific notation (`1.62e-09`). Example: `1.12513`.
+- `processes.json` keeps full precision.
+- Spreadsheets set to Spanish or Catalan regional settings read the dot as
+  a thousands separator. Import the CSV with "decimal separator = ." (or
+  ask for a comma-decimal copy). This is the most likely cause of the
+  "1125 Gt" reading of the first pilot, where the value was 1.125.
+
+## Validation: what is and is not proven
+
+- **Reproduction:** in the first pilot, the script's value for the EU-27
+  electricity product system (0.9166090099874854 per 1 MJ) times 3.6 equals
+  the GUI's value for 3.6 MJ (3.2997924359549473 kg CO2 eq) exactly. That
+  shows the script reproduces openLCA's own calculation. It does not show
+  the number is right: the GUI used the same linking.
+- **Not proven yet:** that the values are plausible. EU-27 grid electricity
+  at 3.30 kg CO2 eq per kWh is roughly 5 to 10 times typical published
+  values. Do not call the pipeline validated until the A/B test, a 10+
+  process sanity check against real-world magnitudes, and 1 or 2 GUI
+  matches with the final linking rule are done.
+
+## Database and method notes
+
+- ELCD 3.2: `elcd_3_2_greendelta_v2_18_correction_20220908.zolca`, free on
+  openLCA Nexus. Process data is mostly 2008 to 2015.
+- Method used for ELCD: `EF 3.0 Method (adapted)`, id
+  `b4571628-4b7b-3e4f-81b1-9a8cca6cb3f8`. It came **bundled inside the ELCD
+  zolca** (category `openLCA LCIA methods 2_1_3`). The separate openLCA LCIA
+  Methods 2.8.2 package was downloaded but never imported.
+- EF 3.1: will use the EF 3.1 LCIA method from the export itself, once the
+  export is complete.
+
+## Licensing caveat
+
+The output copies documentation text from the source datasets. ELCD
+process records are flagged copyright protected and carry GaBi licence
+restrictions (internal use). EF 3.1 data comes with its own end-user
+licence. The EF 3.1 LCIA method files allow redistribution as long as
+the owner is referenced. **Check the redistribution terms with the data
+owner before publishing generated tables.** Generated outputs are kept out
+of this public repository (`output/` is git-ignored).
 
 ## Known limitations
-- Pilot scope: 5 representative processes, not the full database
-- Using ELCD 3.2 + EF 3.0 Method (adapted) pending confirmed free
-  access to official EF 3.1 database and method
-- Product systems must be built manually in the GUI once per process
-  before the script can calculate against them; not yet automated
+
+- Uncertainty: only exchange-level uncertainty and data quality entries
+  that exist in the dataset are passed on. No Monte Carlo is run, so there
+  is no uncertainty range on the impact values themselves.
+- Geography names for codes missing from `geography_names.csv` stay as
+  codes and are marked `code only` in `geography_source`.
+- Category paths and process type filters depend on how the database was
+  imported. Check `list_records.py Process` output before a full run.

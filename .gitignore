@@ -1,5 +1,13 @@
+# openLCA desktop app and databases (large, and licensed data)
 openLCA/
 openLCA.tar.gz
 *.zolca
 *.zip
 code/
+olca-data/
+# downloaded Java libraries (./setup.sh fetches them)
+tools/lib/
+# generated results: share via Drive/release after checking license terms
+output/
+__pycache__/
+derby.log

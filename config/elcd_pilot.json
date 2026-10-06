@@ -1,0 +1,20 @@
+{
+  "_note": "Pilot on ELCD 3.2 (stand-in while EF 3.1 is incomplete). Linking ONLY_DEFAULTS is the working hypothesis; confirm with ab_test.py before trusting numbers.",
+  "ipc_port": 8080,
+  "database_label": "ELCD 3.2 (GreenDelta correction 2022-09-08)",
+  "method_name": "EF 3.0 Method (adapted)",
+  "linking": {"provider_linking": "ONLY_DEFAULTS", "prefer_unit_processes": false},
+  "processes": {
+    "ids": [
+      "83d4634c-b70f-4bb3-8552-1cca6f6359b4",
+      "27cc76aa-c695-4632-a1d7-0d2d23001a0e",
+      "0bd3aec8-286b-466f-868c-87917428450c",
+      "09215eb1-5fc9-11dd-ad8b-0800200c9a66",
+      "119e8cc1-0859-45ca-8f63-93a8a518ffd2",
+      "d1befc51-af18-4725-b356-3c79be66b249",
+      "b444f4d2-3393-11dd-bd11-0800200c9a66"
+    ]
+  },
+  "output_dir": "output/elcd_pilot",
+  "csv_significant_figures": 6
+}
