@@ -23,8 +23,10 @@ python3 extract_ef.py "$TMP/cfg.json" > "$TMP/run.txt" 2>&1
 python3 - "$TMP" << 'PY'
 import csv, sys
 tmp = sys.argv[1]
-rows = list(csv.DictReader(open(f"{tmp}/out/impacts.csv")))
-meta = list(csv.DictReader(open(f"{tmp}/out/process_metadata.csv")))
+allrows = list(csv.DictReader(open(f"{tmp}/out/impacts.csv")))
+rows = [r for r in allrows if r["process_id"] == "p-elec"]
+waste = [r for r in allrows if r["process_id"] == "p-waste"]
+meta = [m for m in csv.DictReader(open(f"{tmp}/out/process_metadata.csv")) if m["process_id"] == "p-elec"]
 checks = {
     "one impact row": len(rows) == 1,
     "value per 1 MJ, no double counting": rows[0]["impact_value"] == "0.277778",
@@ -33,6 +35,8 @@ checks = {
     "reference process share 1": rows[0]["reference_process_share"] == "1",
     "citation": meta[0]["citation"].startswith("Doe, J. (2010)"),
     "uncertainty counted": meta[0]["exchanges_with_uncertainty"] == "1",
+    "negative-reference waste dataset has positive sign": waste and waste[0]["impact_value"] == "2",
+    "functional unit text": rows[0]["functional_unit"] == "1 MJ of Electricity",
 }
 for k, ok in checks.items():
     print(("PASS " if ok else "FAIL ") + k)

@@ -76,6 +76,15 @@ elec_mix = o.Process(
         data_generator=o.as_ref(gen), is_copyright_protected=True,
         restrictions_description="Synthetic restrictions text."))
 
+waste_service = flow("f-waste", "waste incineration of plastics", o.FlowType.PRODUCT_FLOW, mass)
+incineration = o.Process(
+    # GaBi/ILCD style: the treatment service is a NEGATIVE reference output,
+    # emissions are stored per 1 kg treated. Expected: +2.0 kg CO2 eq per kg.
+    id="p-waste", name="Waste incineration of plastics", process_type=o.ProcessType.LCI_RESULT,
+    category="End-of-life treatment/Incineration", location=o.as_ref(eu),
+    exchanges=[ex(waste_service, -1.0, False, "u-kg", mass, ref=True),
+               ex(co2, 2.0, False, "u-kg", mass)])
+
 gwp = o.ImpactCategory(id="ic-gwp", name="Climate change", ref_unit="kg CO2 eq",
                        description="Synthetic GWP100 category.",
                        impact_factors=[o.ImpactFactor(flow=o.as_ref(co2), value=1.0,
@@ -86,6 +95,6 @@ method = o.ImpactMethod(id="m-test", name="Test EF method", version="01.00.000",
                         impact_categories=[o.as_ref(gwp)])
 
 for e in [mass_units, energy_units, mass, energy, elec, coal, co2, eu, src, gen,
-          coal_mining, elec_mix, gwp, method]:
+          waste_service, coal_mining, elec_mix, incineration, gwp, method]:
     c.put(e)
 print("test database ready")

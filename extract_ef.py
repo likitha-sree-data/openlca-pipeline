@@ -218,6 +218,16 @@ def uncertainty_dict(u):
     return d or None
 
 
+def functional_unit(ref_ex):
+    """Plain-words meaning of one row: what 1 reference unit stands for."""
+    if ref_ex is None:
+        return ""
+    unit, flow = ref_name(ref_ex.unit), ref_name(ref_ex.flow)
+    if ref_ex.amount is not None and ref_ex.amount < 0:
+        return f"treatment of 1 {unit} ({flow}); dataset stores it as a negative output"
+    return f"1 {unit} of {flow}"
+
+
 def process_metadata(process, lookup):
     doc = process.process_documentation or o.ProcessDocumentation()
     ref_ex = next((e for e in process.exchanges or [] if e.is_quantitative_reference), None)
@@ -282,6 +292,11 @@ def process_metadata(process, lookup):
               for p in process.parameters or [] if p.is_input_parameter or p.formula is None]
     meta["parameters"] = " | ".join(params) if params else NOT_PROVIDED
     meta["ref_exchange_is_input"] = bool(ref_ex.is_input) if ref_ex else ""
+    meta["functional_unit"] = functional_unit(ref_ex)
+    doc_text = " ".join(str(getattr(doc, f, "") or "") for f in
+                        ("modeling_constants_description", "technology_description",
+                         "inventory_method_description")).lower()
+    meta["mentions_recycling_credit"] = ("credit" in doc_text)
     meta["ref_flow_type"] = enum_str(ref_ex.flow.flow_type) if ref_ex and ref_ex.flow else ""
     if process.other_properties:
         meta["other_properties"] = json.dumps(process.other_properties, ensure_ascii=False)
@@ -319,7 +334,10 @@ def calculate(client, process, ref_ex, method, cfg):
         setup = o.CalculationSetup(
             target=o.Ref(ref_type=o.RefType.ProductSystem, id=sys_ref.id),
             impact_method=o.Ref(ref_type=o.RefType.ImpactMethod, id=method.id),
-            amount=1.0,
+            # A negative reference amount (GaBi/ILCD waste treatment convention,
+            # e.g. "-1 kg of waste incineration") must be requested as -1, or
+            # openLCA runs the dataset backwards and every emission flips sign.
+            amount=-1.0 if ref_ex.amount < 0 else 1.0,
             unit=ref_ex.unit,
             flow_property=ref_ex.flow_property,
         )
@@ -451,7 +469,7 @@ def export(cfg, out_dir, minfo):
     db = cfg["database_label"]
 
     impact_cols = ["process_id", "process_name", "geography", "location_code",
-                   "ref_amount", "ref_unit", "ref_flow_name", "ref_flow_property",
+                   "ref_amount", "ref_unit", "functional_unit", "ref_flow_name", "ref_flow_property",
                    "impact_category", "impact_value", "impact_unit",
                    "method_name", "method_version", "database",
                    "reference_process_share", "impact_category_id"]
@@ -468,6 +486,7 @@ def export(cfg, out_dir, minfo):
                     "location_code": m["location_code"],
                     "ref_amount": 1,
                     "ref_unit": m["ref_unit"],
+                    "functional_unit": m.get("functional_unit", ""),
                     "ref_flow_name": m["ref_flow_name"],
                     "ref_flow_property": m["ref_flow_property"],
                     "impact_category": iv["impact_category"],

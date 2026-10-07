@@ -100,6 +100,29 @@ Every impact row carries `reference_process_share`: the share of the
 value that comes from the process itself. For an aggregated dataset it
 should be 1. Anything clearly below 1 means linked providers were added.
 
+### Findings from the ELCD sanity check (2026-10-07)
+
+- **Negative reference amounts (waste treatment).** GaBi/ILCD waste
+  datasets store their reference as a negative output, for example
+  "-1 kg of waste incineration of plastics". Requesting +1 of it ran the
+  dataset backwards: the inventory showed plastic incineration *emitting*
+  -1.02 kg CO2. The extractor now requests -1 in that case, so values are
+  per 1 kg of waste treated, with the physical sign. `functional_unit`
+  says this in words on every row. Covered by `tests/smoke_test.sh`.
+- **Recycling credits.** The ELCD steel and aluminium datasets "include the
+  burden and credit associated with recycling" (end-of-life recycling rate
+  80% steel, 78% aluminium, per their own documentation). That is why
+  hot rolled coil is 0.96 and aluminium sheet 3.29 kg CO2 eq per kg, below
+  typical primary production values. Not a bug, but users must not add a
+  second recycling credit. `mentions_recycling_credit` flags datasets whose
+  documentation mentions credits (keyword match, read the text to confirm).
+- **Transport.** ELCD has two variants of the same lorry dataset: one per kg
+  of cargo with a hidden distance parameter, one per t*km (0.0667 kg CO2 eq
+  per t*km). Use the t*km variants. Dataset parameters are now exported in
+  `parameters`.
+- **Fuels** at refinery are cradle to gate (production only, no combustion):
+  diesel 0.43 to 0.51 kg CO2 eq per kg. Burning it adds about 3.2 kg CO2 per kg.
+
 ## Outputs (in `output_dir`)
 
 | File | Content |
@@ -121,6 +144,7 @@ should be 1. Anything clearly below 1 means linked providers were added.
 | `process_name` | Dataset name |
 | `geography`, `location_code` | Full location name and its code (for example `Italy`, `IT`) |
 | `ref_amount`, `ref_unit` | Always `1` of `ref_unit`: the value is per 1 MJ, 1 kg, ... |
+| `functional_unit` | The same in words, for example `1 t*km of transport in t*km` or `treatment of 1 kg (...)` |
 | `ref_flow_name`, `ref_flow_property` | The reference product and the quantity it is measured in |
 | `impact_category`, `impact_value`, `impact_unit` | The result |
 | `method_name`, `method_version`, `database` | Where the number comes from |
