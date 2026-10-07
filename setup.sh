@@ -27,8 +27,9 @@ mvn -q -f tools/pom.xml dependency:copy-dependencies -DoutputDirectory="$HERE/to
 ls tools/lib | grep -E "olca-(core|ipc|io)"
 
 echo "== installing the Python client"
-pip install -q olca-ipc==2.6.3 olca-schema==2.6.2 2>/dev/null \
-  || pip install -q --break-system-packages olca-ipc==2.6.3 olca-schema==2.6.2
+# use "python3 -m pip" so the package lands in the same Python that runs the scripts
+python3 -m pip install -q olca-ipc==2.6.3 olca-schema==2.6.2 2>/dev/null \
+  || python3 -m pip install -q --break-system-packages olca-ipc==2.6.3 olca-schema==2.6.2
 python3 -c "import olca_ipc, olca_schema; print('olca-ipc OK')"
 
 if [ "${1:-}" = "--gui" ]; then
