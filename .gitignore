@@ -11,3 +11,4 @@ tools/lib/
 output/
 __pycache__/
 derby.log
+.venv/

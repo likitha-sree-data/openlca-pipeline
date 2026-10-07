@@ -27,10 +27,20 @@ mvn -q -f tools/pom.xml dependency:copy-dependencies -DoutputDirectory="$HERE/to
 ls tools/lib | grep -E "olca-(core|ipc|io)"
 
 echo "== installing the Python client"
-# use "python3 -m pip" so the package lands in the same Python that runs the scripts
-python3 -m pip install -q olca-ipc==2.6.3 olca-schema==2.6.2 2>/dev/null \
-  || python3 -m pip install -q --break-system-packages olca-ipc==2.6.3 olca-schema==2.6.2
-python3 -c "import olca_ipc, olca_schema; print('olca-ipc OK')"
+# olca-ipc 2.6 needs Python 3.12+. If python3 is older, uv fetches a 3.12
+# into .venv; then run the scripts with .venv/bin/python instead of python3.
+if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"; then
+  python3 -m pip install -q olca-ipc==2.6.3 olca-schema==2.6.2 2>/dev/null \
+    || python3 -m pip install -q --break-system-packages olca-ipc==2.6.3 olca-schema==2.6.2
+  PY=python3
+else
+  python3 -m pip install -q uv
+  python3 -m uv venv -q -p 3.12 .venv
+  python3 -m uv pip install -q -p .venv olca-ipc==2.6.3 olca-schema==2.6.2
+  PY=.venv/bin/python
+  echo "NOTE: python3 is older than 3.12, use .venv/bin/python to run the scripts"
+fi
+$PY -c "import olca_ipc, olca_schema; print('olca-ipc OK')"
 
 if [ "${1:-}" = "--gui" ]; then
   echo "== downloading the openLCA desktop app (2.6.2, Linux)"
