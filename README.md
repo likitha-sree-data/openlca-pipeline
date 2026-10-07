@@ -18,6 +18,70 @@ export is available, development uses ELCD 3.2 as a stand-in.
 | Linking rule | **Confirmed on ELCD (2026-10-07): `ONLY_DEFAULTS`.** Every other option adds an unrelated "Container glass" dataset and inflates results, see `ab_results.md`. |
 | EF 3.1 | **Blocked.** The shared export has only `contacts`, `external_docs`, `lciamethods`, `sources`. It has no `processes`, `flows`, `flowproperties`, `unitgroups`, so nothing can be calculated, and the LCIA method cannot be imported either because its factors point to the missing flow files. |
 
+## EF 3.1 data situation (October 2026)
+
+- Carbbin holds no data licence and uses public sources only.
+- The EF 3.1 *reference package* (`EF-v3.1_2.zip`, public, from the JRC)
+  contains the EF 3.1 impact method, 94,062 elementary flows, units and
+  sources, but **no process datasets**.
+- EF 3.1 process datasets are distributed by data nodes (Sphera, ecoinvent,
+  Blonk, ESIG, CEPE, ...). Per the EU Life Cycle Data Network page, access
+  is free only "for users that develop PEF/OEF studies within the existing
+  PEFCRs/OEFSRs"; other uses depend on each owner's terms. Only the
+  Commission-owned nodes are always free, and they are small.
+
+So the deliverables are:
+
+| | Deliverable | How |
+|---|---|---|
+| A | All EF 3.1 characterization factors as tables | `ef_factors.py` on the reference package, no openLCA needed |
+| B | ELCD 3.2 datasets calculated with the real EF 3.1 method | `./olca.sh import-method` into a copy of the ELCD database, `coverage_check.py`, then `extract_ef.py config/elcd_ef31.json` |
+
+### A: characterization factors
+
+```bash
+python3 -I ef_factors.py EF-v3.1_2.zip output/ef31_factors
+```
+
+Writes `characterization_factors.csv` (one row per impact category and
+substance: flow UUID, name, CAS number, compartment, direction, factor and
+its unit, e.g. `kg CO2-Equivalents per kg`), an Excel copy with comma
+decimals, `impact_categories.csv` (indicator, unit, model, reference year,
+geography, use advice, sources, access restrictions) and `summary.json`.
+Factors keep full precision.
+
+### B: ELCD with the EF 3.1 method
+
+```bash
+./olca.sh stop
+./olca.sh copy elcd elcd_ef31                       # keep the original untouched
+./olca.sh import-method EF-v3.1_2.zip elcd_ef31     # adds the EF 3.1 method and flows
+./olca.sh server elcd_ef31
+.venv/bin/python list_records.py ImpactMethod       # the import names it "Environmental Footprint"
+.venv/bin/python coverage_check.py config/elcd_ef31.json --old-method "EF 3.0 Method (adapted)"
+.venv/bin/python extract_ef.py config/elcd_ef31.json
+```
+
+The EF 3.1 factors attach to ELCD substances by matching IDs. A substance
+without a match silently counts as zero, which would understate results.
+`coverage_check.py` compares each dataset's Climate change result against
+the EF 3.0 (adapted) method, which is known to fit ELCD, and reports
+`lost_share`: the part of the old result coming from substances the EF 3.1
+method has no factor for. Treat any dataset with a lost share above 5% as
+not usable until explained. openLCA appends the reference year to imported
+category names (for example `Climate change - 2021`).
+
+### System boundaries
+
+Boundary information is kept per dataset in `process_metadata.csv`:
+`technology_description` (what the dataset covers), `inventory_method_description`
+(modelling approach), `modeling_constants_description` (allocation,
+recycling credits, cut-offs), `completeness_description`,
+`data_selection_description`, `time_description`, `geography_description`,
+`intended_application` and `use_advice`, plus `mentions_recycling_credit`.
+Method-side scope (indicator, model, reference year, geography) is in
+`impact_categories.csv`.
+
 ## Quick start
 
 ```bash
@@ -31,6 +95,8 @@ python3 extract_ef.py config/elcd_pilot.json
 ```
 
 `./tests/smoke_test.sh` checks the whole chain without any real data.
+`./tests/ef_package_test.sh` checks the EF method path (factor export,
+method import, extraction, coverage detection) the same way.
 
 The openLCA desktop app is optional (`./setup.sh --gui`). It is only
 needed to compare single values against the GUI. `olca.sh` uses the same
@@ -44,7 +110,9 @@ shared, but a database can be open in only one program at a time.
 | `extract_ef.py` | The pipeline. `python3 extract_ef.py <config.json>` |
 | `config/*.json` | Which database label, method, linking, processes and output folder to use |
 | `ab_test.py` | Compares linking options for the same process and shows top contributors |
-| `check_ilcd.py` | Says whether an ILCD export is complete before importing it |
+| `check_ilcd.py` | Says whether an ILCD export is complete before importing it (`--methods-only` for method packages) |
+| `ef_factors.py` | Exports all characterization factors of an ILCD method package (deliverable A) |
+| `coverage_check.py` | Checks that an imported method's factors reach the database's substances |
 | `sanity_report.py` | One line per process (value, per kWh, share, linked processes) for plausibility checks |
 | `list_records.py` | Lists methods/processes with location and category, to pick UUIDs safely |
 | `olca.sh`, `tools/` | Headless openLCA: restore, import, counts, server start/stop |

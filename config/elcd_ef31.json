@@ -1,0 +1,10 @@
+{
+  "_note": "ELCD 3.2 datasets calculated with the real EF 3.1 method imported from the EF 3.1 reference package (EF-v3.1_2.zip). Check method_name with list_records.py ImpactMethod after the import, and run coverage_check.py before trusting results.",
+  "ipc_port": 8080,
+  "database_label": "ELCD 3.2 (GreenDelta correction 2022-09-08), characterized with the EF 3.1 reference package",
+  "method_name": "Environmental Footprint",
+  "linking": {"provider_linking": "ONLY_DEFAULTS", "prefer_unit_processes": false},
+  "processes": {"exclude_category_prefixes": ["Dummy"], "exclude_name_prefixes": ["Dummy_"]},
+  "output_dir": "output/elcd_ef31",
+  "csv_significant_figures": 6
+}

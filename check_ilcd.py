@@ -1,6 +1,8 @@
 """Check that an ILCD export is complete enough to calculate with.
 
     python3 -I check_ilcd.py path/to/export.zip      (or an unzipped folder)
+    python3 -I check_ilcd.py --methods-only package.zip   (LCIA method package,
+                                                          no processes expected)
 
 Counts the data sets per folder and checks that the references inside
 processes and LCIA methods point to files that are really in the package.
@@ -35,12 +37,15 @@ def entries(path):
 
 
 def main():
-    if len(sys.argv) != 2:
+    args = [a for a in sys.argv[1:] if a != "--methods-only"]
+    methods_only = "--methods-only" in sys.argv
+    if len(args) != 1:
         sys.exit(__doc__)
+    path = args[0]
     files = {}
     counts = Counter()
     readers = {}
-    for folder, name, read in entries(sys.argv[1]):
+    for folder, name, read in entries(path):
         counts[folder] += 1
         files.setdefault(folder, set()).add(name)
         readers.setdefault(folder, []).append(read)
@@ -48,7 +53,8 @@ def main():
     print("data sets per folder:")
     for k, v in sorted(counts.items()):
         print(f"  {k:<16} {v}")
-    missing_folders = [f for f in REQUIRED if counts[f] == 0]
+    required = [f for f in REQUIRED if not (methods_only and f == "processes")]
+    missing_folders = [f for f in required if counts[f] == 0]
 
     dangling = Counter()
     for folder in ["processes", "lciamethods"]:
