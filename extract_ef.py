@@ -472,6 +472,8 @@ def export(cfg, out_dir, minfo):
                    "ref_amount", "ref_unit", "functional_unit", "ref_flow_name", "ref_flow_property",
                    "impact_category", "impact_value", "impact_unit",
                    "method_name", "method_version", "database",
+                   "citation", "data_set_owner", "valid_from", "valid_until",
+                   "mentions_recycling_credit",
                    "reference_process_share", "impact_category_id"]
     with open(os.path.join(out_dir, "impacts.csv"), "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=impact_cols)
@@ -495,6 +497,12 @@ def export(cfg, out_dir, minfo):
                     "method_name": minfo["method_name"],
                     "method_version": minfo["method_version"],
                     "database": db,
+                    # repeated from process_metadata.csv so the table reads on its own
+                    "citation": m.get("citation", ""),
+                    "data_set_owner": m.get("data_set_owner", ""),
+                    "valid_from": m.get("valid_from", ""),
+                    "valid_until": m.get("valid_until", ""),
+                    "mentions_recycling_credit": m.get("mentions_recycling_credit", ""),
                     "reference_process_share": fmt_sig(iv["reference_process_share"], 4),
                     "impact_category_id": iv["impact_category_id"],
                 })

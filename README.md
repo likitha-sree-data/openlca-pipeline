@@ -148,7 +148,9 @@ should be 1. Anything clearly below 1 means linked providers were added.
 | `ref_flow_name`, `ref_flow_property` | The reference product and the quantity it is measured in |
 | `impact_category`, `impact_value`, `impact_unit` | The result |
 | `method_name`, `method_version`, `database` | Where the number comes from |
-| `reference_process_share` | Diagnostic, see "Calculation" |
+| `citation`, `data_set_owner`, `valid_from`, `valid_until` | Bibliographic citation, owner and validity period of the dataset (repeated from `process_metadata.csv`) |
+| `mentions_recycling_credit` | The dataset documentation mentions credits (for example end-of-life recycling); read it before combining with your own recycling credits |
+| `reference_process_share` | Diagnostic, see "Calculation". Empty when the value is 0 |
 | `impact_category_id` | Join key to `impact_categories.csv` |
 
 No openLCA-generated IDs are exported. Product systems are temporary and
