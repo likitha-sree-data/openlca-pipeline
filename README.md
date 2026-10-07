@@ -15,7 +15,7 @@ export is available, development uses ELCD 3.2 as a stand-in.
 | Extractor (`extract_ef.py`) | Rewritten. Config driven, resumable, logs failures. Tested end to end on a synthetic database (`tests/smoke_test.sh`). |
 | Headless openLCA (no GUI) | Working: restore `.zolca`, import ILCD, run the IPC server (`olca.sh`). Tested with openLCA 2.6.2 libraries. |
 | ELCD 3.2 numbers | **Not yet regenerated** with the new extractor. The old pilot CSV is kept in `archive/` for reference only. |
-| Linking rule | Working hypothesis: `ONLY_DEFAULTS` (see "Calculation" below). Must be confirmed on ELCD with `ab_test.py`. |
+| Linking rule | **Confirmed on ELCD (2026-10-07): `ONLY_DEFAULTS`.** Every other option adds an unrelated "Container glass" dataset and inflates results, see `ab_results.md`. |
 | EF 3.1 | **Blocked.** The shared export has only `contacts`, `external_docs`, `lciamethods`, `sources`. It has no `processes`, `flows`, `flowproperties`, `unitgroups`, so nothing can be calculated, and the LCIA method cannot be imported either because its factors point to the missing flow files. |
 
 ## Quick start
@@ -45,6 +45,7 @@ shared, but a database can be open in only one program at a time.
 | `config/*.json` | Which database label, method, linking, processes and output folder to use |
 | `ab_test.py` | Compares linking options for the same process and shows top contributors |
 | `check_ilcd.py` | Says whether an ILCD export is complete before importing it |
+| `sanity_report.py` | One line per process (value, per kWh, share, linked processes) for plausibility checks |
 | `list_records.py` | Lists methods/processes with location and category, to pick UUIDs safely |
 | `olca.sh`, `tools/` | Headless openLCA: restore, import, counts, server start/stop |
 | `setup.sh` | One-command setup (also run automatically for a new Codespace) |
@@ -63,9 +64,11 @@ For every selected process the extractor:
 What was verified directly on the openLCA 2.6.2 engine (synthetic data):
 
 - Calculating a process "directly" is **not** a bare calculation: openLCA
-  links providers on the fly. So the old claim "bare processes miss
-  upstream, you must use product systems" was wrong. The difference that
-  matters is the **provider linking** setting.
+  links providers on the fly (seen on the synthetic database; on the ELCD
+  database the direct process target returned an error instead). So the
+  old claim "bare processes miss upstream, you must use product systems"
+  was wrong. The difference that matters is the **provider linking**
+  setting. The extractor always builds an explicit product system.
 - With `ONLY_DEFAULTS` and no default providers, only the process itself
   is calculated. Other linking options pull in any process that produces
   the dataset's product inputs.
@@ -73,11 +76,25 @@ What was verified directly on the openLCA 2.6.2 engine (synthetic data):
 
 Why linking matters: ELCD and EF datasets are mostly aggregated
 "LCI result" datasets, which already contain their whole supply chain.
-Linking more providers to their inputs adds those supply chains a second
-time. That is the leading explanation for the implausible electricity
-values in the first pilot (EU-27 grid mix 3.30 kg CO2 eq per kWh in the
-GUI, a GUI contribution chart dominated by container glass), but it is
-**not proven yet**. `ab_test.py` on ELCD settles it.
+Their only product inputs and outputs are bookkeeping flows (radioactive
+waste, tailings, secondary fuel) whose default providers are empty
+`Dummy_` processes.
+
+**A/B test on ELCD 3.2 (`ab_results.md`), Climate change:**
+
+| Dataset | `ONLY_DEFAULTS` (dataset itself) | Any other linking (old pilot) | Added by "Container glass (delivered to the end user)" |
+|---|---|---|---|
+| Electricity grid mix, EU-27, per MJ | 0.1328 (0.478 per kWh) | 0.9166 | 0.784 |
+| Electricity grid mix, Italy, per MJ | 0.1515 (0.545 per kWh) | 1.1251 | 0.974 |
+| Electricity grid mix, Cyprus, per MJ | 0.2523 (0.908 per kWh) | 0.3278 | 0.0755 |
+| Aluminium sheet, Europe, per kg | 3.286 | 12.157 | 8.87 |
+
+With `PREFER_DEFAULTS` or `IGNORE_DEFAULTS` openLCA links an unrelated
+dataset, "Container glass (delivered to the end user)", into every one of
+these systems and it dominates the result. With `ONLY_DEFAULTS` only the
+dataset and its empty dummies are linked, and the dataset itself is 100%
+of the result. The old pilot values (and the GUI value it matched) were
+the contaminated ones. The pipeline now uses `ONLY_DEFAULTS`.
 
 Every impact row carries `reference_process_share`: the share of the
 value that comes from the process itself. For an aggregated dataset it
@@ -147,11 +164,16 @@ codes).
   the GUI's value for 3.6 MJ (3.2997924359549473 kg CO2 eq) exactly. That
   shows the script reproduces openLCA's own calculation. It does not show
   the number is right: the GUI used the same linking.
-- **Not proven yet:** that the values are plausible. EU-27 grid electricity
-  at 3.30 kg CO2 eq per kWh is roughly 5 to 10 times typical published
-  values. Do not call the pipeline validated until the A/B test, a 10+
-  process sanity check against real-world magnitudes, and 1 or 2 GUI
-  matches with the final linking rule are done.
+- **Explained:** the implausible pilot values (EU-27 electricity 3.30 kg
+  CO2 eq per kWh) came from wrong provider linking, see the A/B table.
+  With `ONLY_DEFAULTS` the three electricity mixes are 0.48 (EU-27), 0.55
+  (Italy) and 0.91 (Cyprus) kg CO2 eq per kWh, in line with typical
+  published grid factors for the 2008 to 2015 period.
+- **Still open:** aluminium sheet at 3.29 kg CO2 eq per kg looks low for
+  primary aluminium; the dataset includes recycling, which may explain it.
+  To check in the dataset documentation. Also still to do: a 10+ process
+  sanity check (`sanity_report.py`) and 1 or 2 GUI matches with
+  `ONLY_DEFAULTS` linking. Until then, do not call the pipeline validated.
 
 ## Database and method notes
 

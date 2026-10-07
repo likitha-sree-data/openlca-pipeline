@@ -1,9 +1,12 @@
 {
-  "_note": "Pilot on ELCD 3.2 (stand-in while EF 3.1 is incomplete). Linking ONLY_DEFAULTS is the working hypothesis; confirm with ab_test.py before trusting numbers.",
+  "_note": "Pilot on ELCD 3.2 (stand-in while EF 3.1 is incomplete). ONLY_DEFAULTS confirmed by ab_test.py on 2026-10-07 (see ab_results.md).",
   "ipc_port": 8080,
   "database_label": "ELCD 3.2 (GreenDelta correction 2022-09-08)",
   "method_name": "EF 3.0 Method (adapted)",
-  "linking": {"provider_linking": "ONLY_DEFAULTS", "prefer_unit_processes": false},
+  "linking": {
+    "provider_linking": "ONLY_DEFAULTS",
+    "prefer_unit_processes": false
+  },
   "processes": {
     "ids": [
       "83d4634c-b70f-4bb3-8552-1cca6f6359b4",

@@ -176,6 +176,8 @@ def select_processes(client, sel):
             return False
         if any(cat.startswith(p) for p in sel.get("exclude_category_prefixes", [])):
             return False
+        if any((d.name or "").startswith(p) for p in sel.get("exclude_name_prefixes", [])):
+            return False
         if sel.get("process_types") and enum_str(d.process_type) not in sel["process_types"]:
             return False
         name = (d.name or "").lower()

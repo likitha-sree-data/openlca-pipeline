@@ -3,8 +3,19 @@
   "ipc_port": 8080,
   "database_label": "ELCD 3.2 (GreenDelta correction 2022-09-08)",
   "method_name": "EF 3.0 Method (adapted)",
-  "linking": {"provider_linking": "ONLY_DEFAULTS", "prefer_unit_processes": false},
-  "processes": {"exclude_category_prefixes": ["Dummy"], "limit": 60},
+  "linking": {
+    "provider_linking": "ONLY_DEFAULTS",
+    "prefer_unit_processes": false
+  },
+  "processes": {
+    "exclude_category_prefixes": [
+      "Dummy"
+    ],
+    "exclude_name_prefixes": [
+      "Dummy_"
+    ],
+    "limit": 60
+  },
   "output_dir": "output/elcd_sample",
   "csv_significant_figures": 6
 }

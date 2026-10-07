@@ -3,8 +3,18 @@
   "ipc_port": 8080,
   "database_label": "EF 3.1 (EF_3_1_MASTER 2025-06-17, shared by Carbbin)",
   "method_name": "SET ME AFTER IMPORT",
-  "linking": {"provider_linking": "ONLY_DEFAULTS", "prefer_unit_processes": false},
-  "processes": {"exclude_category_prefixes": ["Dummy"]},
+  "linking": {
+    "provider_linking": "ONLY_DEFAULTS",
+    "prefer_unit_processes": false
+  },
+  "processes": {
+    "exclude_category_prefixes": [
+      "Dummy"
+    ],
+    "exclude_name_prefixes": [
+      "Dummy_"
+    ]
+  },
   "output_dir": "output/ef31",
   "csv_significant_figures": 6
 }
