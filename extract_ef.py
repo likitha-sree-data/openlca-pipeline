@@ -507,6 +507,19 @@ def export(cfg, out_dir, minfo):
                     "impact_category_id": iv["impact_category_id"],
                 })
 
+    # Copy for spreadsheets set to Spanish/Catalan/most EU locales, which read
+    # "1.125" as 1125: semicolon separated, comma decimals.
+    with open(os.path.join(out_dir, "impacts.csv"), encoding="utf-8") as src, \
+            open(os.path.join(out_dir, "impacts_excel_comma_decimal.csv"), "w", newline="",
+                 encoding="utf-8-sig") as dst:
+        w = csv.writer(dst, delimiter=";")
+        for i, row in enumerate(csv.reader(src)):
+            if i > 0:
+                for col in ("impact_value", "reference_process_share"):
+                    j = impact_cols.index(col)
+                    row[j] = row[j].replace(".", ",")
+            w.writerow(row)
+
     meta_cols = []
     for r in records:
         for k in list(r["metadata"].keys()) + ["linked_processes", "provider_linking", "calculated_at"]:

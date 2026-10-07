@@ -37,6 +37,8 @@ checks = {
     "uncertainty counted": meta[0]["exchanges_with_uncertainty"] == "1",
     "negative-reference waste dataset has positive sign": waste and waste[0]["impact_value"] == "2",
     "functional unit text": rows[0]["functional_unit"] == "1 MJ of Electricity",
+    "comma-decimal copy": "0,277778" in open(f"{tmp}/out/impacts_excel_comma_decimal.csv", encoding="utf-8-sig").read(),
+    "citation in impacts.csv": rows[0]["citation"].startswith("Doe, J. (2010)"),
 }
 for k, ok in checks.items():
     print(("PASS " if ok else "FAIL ") + k)

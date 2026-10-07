@@ -128,6 +128,7 @@ should be 1. Anything clearly below 1 means linked providers were added.
 | File | Content |
 |---|---|
 | `impacts.csv` | One row per process x impact category (long format) |
+| `impacts_excel_comma_decimal.csv` | Same table for Excel with comma decimals (Spain, Catalonia, most of the EU) |
 | `process_metadata.csv` | One row per process with all descriptive fields, join on `process_id` |
 | `impact_categories.csv` | Method name, version, description and every impact category with unit and description |
 | `exchange_uncertainty.csv` | Uncertainty distributions of the dataset's exchanges, where the dataset has them |
@@ -179,8 +180,8 @@ codes).
   and may use scientific notation (`1.62e-09`). Example: `1.12513`.
 - `processes.json` keeps full precision.
 - Spreadsheets set to Spanish or Catalan regional settings read the dot as
-  a thousands separator. Import the CSV with "decimal separator = ." (or
-  ask for a comma-decimal copy). This is the most likely cause of the
+  a thousands separator. Open `impacts_excel_comma_decimal.csv` instead
+  (semicolon separated, comma decimals, opens directly in such Excel). This is the most likely cause of the
   "1125 Gt" reading of the first pilot, where the value was 1.125.
 
 ## Validation: what is and is not proven
