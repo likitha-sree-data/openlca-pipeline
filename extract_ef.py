@@ -277,6 +277,12 @@ def process_metadata(process, lookup):
     }
     for f in DOC_TEXT_FIELDS:
         meta[f] = text_or_np(getattr(doc, f, None))
+    params = [f"{p.name} = {p.value if p.formula is None else p.formula}"
+              + (f" ({p.description})" if p.description else "")
+              for p in process.parameters or [] if p.is_input_parameter or p.formula is None]
+    meta["parameters"] = " | ".join(params) if params else NOT_PROVIDED
+    meta["ref_exchange_is_input"] = bool(ref_ex.is_input) if ref_ex else ""
+    meta["ref_flow_type"] = enum_str(ref_ex.flow.flow_type) if ref_ex and ref_ex.flow else ""
     if process.other_properties:
         meta["other_properties"] = json.dumps(process.other_properties, ensure_ascii=False)
 
