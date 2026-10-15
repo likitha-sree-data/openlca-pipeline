@@ -68,6 +68,7 @@ def _from_pieces(eng: Engine, pieces: list[PieceIn]) -> EOutfit:
 class SuggestIn(Ctx):
     pinned: str | None = None
     exclude: list[list[str]] = []
+    avoid: list[str] = []  # prefer outfits that share few of these pieces (Compare)
 
 
 @router.post("/outfits/suggest")
@@ -76,7 +77,7 @@ def suggest(body: SuggestIn, user: CurrentUser = Depends(current_user), db: Sess
     missing = eng.missing()
     if missing:
         return {"outfit": None, "more": [], "missing": missing}
-    main = eng.suggest(n=1, pinned=body.pinned, exclude={frozenset(x) for x in body.exclude})
+    main = eng.suggest(n=1, pinned=body.pinned, exclude={frozenset(x) for x in body.exclude}, avoid=set(body.avoid))
     if not main and body.exclude:
         main = eng.suggest(n=1, pinned=body.pinned)
     if not main:

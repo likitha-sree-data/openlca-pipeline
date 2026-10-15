@@ -17,3 +17,4 @@ scikit-image==0.26.0
 # Cutout model runtime (u2netp)
 rembg==2.0.85
 onnxruntime==1.31.0
+anthropic==1.14.0

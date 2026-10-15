@@ -1,0 +1,78 @@
+import { expect, test } from '@playwright/test'
+import fs from 'node:fs'
+import { expectNoA11yViolations, signIn, startDemo, tab, token } from './helpers'
+
+test('ask the chat a question and save the outfit it suggests @mobile', async ({ page }) => {
+  await startDemo(page)
+  await page.goto('/ask')
+  await expect(page.getByRole('heading', { name: 'Ask about your wardrobe.' })).toBeVisible()
+  await expectNoA11yViolations(page, 'ask')
+  await page.getByRole('button', { name: 'Do I own anything green?' }).click()
+  await expect(page.getByText(/Yes\. In green you have/)).toBeVisible()
+  await page.getByLabel('Your question').fill('What goes with my olive cardigan?')
+  await page.getByRole('button', { name: 'Send' }).click()
+  await expect(page.getByText(/Your olive cardigan goes well with/)).toBeVisible()
+  const save = page.getByRole('button', { name: 'Save this outfit' }).last()
+  await save.click()
+  await expect(page.getByText('Outfit saved')).toBeVisible()
+  const looks = await (await page.request.get('/api/outfits', { headers: { Authorization: `Bearer ${await token(page)}` } })).json()
+  expect(looks.some((l: { source: string }) => l.source === 'chat')).toBe(true)
+})
+
+test('compare two outfits from Home, swap a piece, save either; compare saved looks from History', async ({ page }) => {
+  await startDemo(page)
+  await page.getByRole('button', { name: 'Compare', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Compare outfits.' })).toBeVisible()
+  const a = page.getByRole('region', { name: 'Outfit A' })
+  const b = page.getByRole('region', { name: 'Outfit B' })
+  await expect(a.getByRole('group', { name: /Outfit:/ })).toBeVisible()
+  await expect(b.getByRole('group', { name: /Outfit:/ })).toBeVisible()
+  await expectNoA11yViolations(page, 'compare')
+  await b.getByRole('button', { name: /^Swap / }).last().click()
+  await b.getByRole('button', { name: /^Use .* in Outfit B$/ }).first().click()
+  await b.getByRole('button', { name: 'Save outfit' }).click()
+  await expect(page.getByText('Outfit B saved')).toBeVisible()
+  await a.getByRole('button', { name: 'Save outfit' }).click()
+  await expect(page.getByText('Outfit A saved')).toBeVisible()
+
+  await tab(page, 'History')
+  const looks = page.getByRole('region', { name: 'Saved looks' })
+  await looks.getByRole('button', { name: 'Compare two looks' }).click()
+  await looks.getByRole('button', { name: 'Pick look: Outfit A' }).click()
+  await looks.getByRole('button', { name: 'Pick look: Outfit B' }).click()
+  await page.getByRole('button', { name: 'Compare', exact: true }).click()
+  await expect(page.getByRole('region', { name: 'Outfit A' }).getByRole('group', { name: /Outfit:/ })).toBeVisible()
+})
+
+test('settings: unsaved warning, export my data and delete my account', async ({ page }) => {
+  const email = await signIn(page)
+  await page.goto('/settings')
+  await expect(page.getByRole('heading', { name: 'Account and settings.' })).toBeVisible()
+  await expectNoA11yViolations(page, 'settings')
+  await page.getByLabel('Display name').fill('Sam')
+  await tab(page, 'Closet')
+  await expect(page.getByRole('dialog', { name: 'Leave without saving?' })).toBeVisible()
+  await page.getByRole('button', { name: 'Stay on this page' }).click()
+  await page.getByRole('button', { name: 'Save settings' }).click()
+  await expect(page.getByText('Settings saved')).toBeVisible()
+
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export my data' }).click()
+  const file = await download
+  const path = await file.path()
+  const bytes = fs.readFileSync(path!)
+  expect(bytes.subarray(0, 2).toString()).toBe('PK')
+  expect(bytes.includes(Buffer.from('data.json'))).toBe(true)
+
+  await page.getByRole('button', { name: 'Delete my account' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Delete your account?' })
+  await expect(dialog.getByRole('button', { name: 'Delete everything' })).toBeDisabled()
+  await dialog.getByLabel('Type delete my account to confirm').fill('delete my account')
+  const t = await token(page)
+  await dialog.getByRole('button', { name: 'Delete everything' }).click()
+  await expect(page.getByRole('heading', { name: 'Sign in.' })).toBeVisible()
+  // the old session is refused, so it cannot recreate the account
+  const me = await page.request.get('/api/me', { headers: { Authorization: `Bearer ${t}` } })
+  expect(me.status()).toBe(401)
+  expect(email).toContain('@')
+})

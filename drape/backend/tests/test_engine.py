@@ -222,3 +222,10 @@ def test_property_outfit_rules(pieces, seed, occasion, temp):
         assert eng.is_valid(o)
     again = Engine(pieces, Context(occasion=occasion, temp_c=temp, seed=seed, today=TODAY)).suggest(n=5)
     assert [o.ids for o in outs] == [o.ids for o in again]
+
+
+def test_avoid_prefers_different_pieces():
+    eng = Engine(wardrobe(), Context(today=TODAY, seed=0))
+    a = eng.suggest(n=1)[0]
+    b = Engine(wardrobe(), Context(today=TODAY, seed=0)).suggest(n=1, exclude={a.key()}, avoid=set(a.ids))[0]
+    assert len(set(a.ids) & set(b.ids)) <= 1

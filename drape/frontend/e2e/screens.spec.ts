@@ -39,7 +39,7 @@ const SCREENS: Screen[] = [
     },
   },
   { name: 'compare', path: '/compare' },
-  { name: 'ask', path: '/ask' },
+  { name: 'ask', path: '/ask', action: async (p) => { await p.getByRole('button', { name: 'What goes with my olive cardigan?' }).click(); await expect(p.getByText(/goes well with/)).toBeVisible() } },
   { name: 'settings', path: '/settings' },
   { name: 'colors', path: '/settings/colors' },
   { name: 'notifications', path: '/notifications' },

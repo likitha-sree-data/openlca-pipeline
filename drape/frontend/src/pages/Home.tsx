@@ -209,7 +209,8 @@ export default function Home() {
                 <Link to="/settings/colors" className="btn-secondary">Choose colors</Link>
                 <button type="button" className="btn-secondary" onClick={() => setConfirmWear(true)}>Wear this today</button>
                 <button type="button" className="btn-secondary" onClick={shuffle}><ShuffleIcon width={18} height={18} />Show another</button>
-                <button type="button" className="btn-quiet col-span-2" onClick={() => navigate('/compare', { state: { a: current, occasion } })}>Compare with another outfit</button>
+                <button type="button" className="btn-quiet" onClick={() => navigate('/compare', { state: { a: current, occasion } })}>Compare</button>
+                <Link to="/ask" className="btn-quiet">Ask about your wardrobe</Link>
               </div>
               {(save.error || wear.error) && <div className="mt-3"><ErrorNote error={save.error ?? wear.error} /></div>}
             </div>

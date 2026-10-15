@@ -46,3 +46,13 @@ One line per choice where the spec is silent.
 - Segmentation fallback (no SegFormer): the person cutout is split into body bands (upper, lower, shoes); detections are marked low confidence.
 - Embedding fallback (no FashionCLIP): 512-d vector of color histograms, silhouette and texture features; category guess then comes from silhouette rules and is marked for review.
 - Link fetch limits: 5 second timeout per hop, 3 redirects, 2 MB body cap, only ports 80 and 443.
+- The chat never sends photos to an AI provider in v1, so there is no photo opt-in toggle in the interface; `profiles.chat_photos_opt_in` is kept for a later version.
+- The Anthropic provider uses the official SDK with `claude-opus-5-5` by default (override with `LLM_MODEL`), effort `low` for short answers, and the server-side refusal fallback (`fallbacks: "default"`).
+- The Gemini provider calls the REST `generateContent` endpoint with function calling; default model `gemini-2.5-flash`.
+- If the AI provider fails, the rule-based assistant answers instead, so chat never goes dark.
+- Garment names in chat replies are matched against tool results; only owned ids are rendered and raw ids are stripped from text.
+- Compare's Outfit B prefers pieces not used in Outfit A (a 0.6 score penalty per shared piece).
+- Deleting an account leaves a tombstone row (user id and time only) so sessions issued before deletion cannot recreate it.
+- Account deletion also deletes the Supabase Auth user through the admin API when the service key is set.
+- Exports leave out garment embeddings (512 numbers each, not meaningful to a person) and the versatility cache.
+- Saved looks are listed in History so any two can be compared, as the spec asks.

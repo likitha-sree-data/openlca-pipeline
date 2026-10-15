@@ -324,11 +324,17 @@ class Engine:
                 needs.append("bottom")
         return needs
 
-    def suggest(self, n: int = 1, pinned: str | None = None, exclude: set[frozenset[str]] | None = None) -> list[Outfit]:
+    def suggest(self, n: int = 1, pinned: str | None = None, exclude: set[frozenset[str]] | None = None,
+                avoid: set[str] | None = None) -> list[Outfit]:
         rows = self.combos.rows()
         if len(rows) == 0:
             return []
         scores = self.scores.copy()
+        if avoid:
+            idx = [self.index[a] for a in avoid if a in self.index]
+            if idx:
+                shared = np.isin(rows, idx).sum(axis=1)
+                scores = scores - 0.6 * shared
         mask = np.ones(len(rows), dtype=bool)
         if pinned is not None:
             if pinned not in self.index:

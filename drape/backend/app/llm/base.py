@@ -13,7 +13,8 @@ class LLMProvider(Protocol):
     can_chat: bool
     can_read_labels: bool
 
-    def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], system: str = "") -> dict[str, Any]: ...
+    def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], system: str = "",
+             execute: Any = None) -> dict[str, Any]: ...
 
     def read_label(self, image_jpeg: bytes) -> dict[str, Any]: ...
 
@@ -25,7 +26,8 @@ class NoneProvider:
     can_chat = False
     can_read_labels = False
 
-    def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], system: str = "") -> dict[str, Any]:
+    def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], system: str = "",
+             execute: Any = None) -> dict[str, Any]:
         raise RuntimeError("No LLM provider configured")
 
     def read_label(self, image_jpeg: bytes) -> dict[str, Any]:
@@ -38,3 +40,17 @@ LABEL_PROMPT = (
     '"iron": "low|medium|high|no", "dry_clean": true|false}, '
     '"fiber_content": [{"fiber": "cotton", "percent": 100}]}. Leave out any field you cannot read.'
 )
+
+
+def parse_json_reply(text: str) -> dict[str, Any]:
+    """Pull the first JSON object out of a model reply."""
+    import json
+
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end <= start:
+        return {}
+    try:
+        data = json.loads(text[start:end + 1])
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}

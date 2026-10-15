@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .db import get_db
-from .models import ColorPrefs, Profile
+from .models import AccountTombstone, ColorPrefs, Profile
 
 DRAPE_ISSUER = "drape"
 
@@ -106,6 +106,9 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> CurrentUser
         uid = uuid.UUID(claims["sub"])
     except (KeyError, ValueError) as exc:
         raise HTTPException(401, "Your session is not valid. Sign in again.") from exc
+    tomb = db.get(AccountTombstone, uid)
+    if tomb is not None and claims.get("iat", 0) <= tomb.deleted_at.timestamp():
+        raise HTTPException(401, "This account was deleted. Sign in again to start fresh.")
     profile = ensure_profile(db, uid, claims.get("email"))
     if profile.is_demo and profile.demo_expires_at and profile.demo_expires_at < datetime.now(UTC):
         raise HTTPException(401, "This demo has expired. Start a new one from the sign-in page.")

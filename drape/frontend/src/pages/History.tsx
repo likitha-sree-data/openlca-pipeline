@@ -98,6 +98,8 @@ export default function History() {
         </div>
       )}
 
+      <SavedLooks pick={comparePick} onPick={(id) => setComparePick((p) => (p!.includes(id) ? p!.filter((x) => x !== id) : [...p!, id].slice(-2)))} onStartCompare={() => setComparePick([])} />
+
       <section aria-labelledby="insights-title" className="mt-12">
         <h2 id="insights-title" className="section-title mb-4">Insights</h2>
         <Insights />
@@ -107,6 +109,62 @@ export default function History() {
       {logOpen && <ManualLog onClose={() => setLogOpen(false)} />}
       {openEntry && <EntryDialog entry={openEntry} onClose={() => setOpenEntry(null)} />}
     </>
+  )
+}
+
+function SavedLooks({ pick, onPick, onStartCompare }: { pick: string[] | null; onPick: (id: string) => void; onStartCompare: () => void }) {
+  const q = useQuery({ queryKey: ['looks'], queryFn: () => api.get<SavedOutfit[]>('/api/outfits?saved=true') })
+  const qc = useQueryClient()
+  const toast = useToast()
+  const [removing, setRemoving] = useState<SavedOutfit | null>(null)
+  const looks = q.data ?? []
+  return (
+    <section aria-labelledby="looks-title" className="mt-12">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 id="looks-title" className="section-title">Saved looks</h2>
+          <p className="mt-1 text-[15px] text-ink2">Looks you saved from Home, Compare or chat.</p>
+        </div>
+        {looks.length > 1 && !pick && <button type="button" className="btn-quiet" onClick={onStartCompare}>Compare two looks</button>}
+      </div>
+      {q.isLoading ? <Loading /> : looks.length === 0 ? (
+        <p className="text-[15px] text-ink2">No saved looks yet. Tap Save this look on Home.</p>
+      ) : (
+        <ul tabIndex={0} aria-label="Saved looks" className="scrollbar-none -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-6 md:px-0">
+          {looks.map((l) => {
+            const label = l.name && !l.name.startsWith('Plan for') ? l.name : occasionLabel(l.occasion)
+            const on = pick?.includes(l.id)
+            return (
+              <li key={l.id} className="w-[140px] shrink-0 md:w-auto">
+                <button
+                  type="button"
+                  className={`block w-full rounded-card text-left ${on ? 'ring-2 ring-accent' : ''}`}
+                  aria-pressed={pick ? on : undefined}
+                  aria-label={pick ? `Pick look: ${label}` : `Look: ${label}`}
+                  onClick={() => (pick ? onPick(l.id) : setRemoving(l))}
+                >
+                  <FlatLay pieces={l.pieces} size="sm" label={`${label}: ${l.pieces.map((p) => p.garment?.name).join(', ')}`} />
+                  <span className="mt-1.5 block text-tile">{label}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <ConfirmDialog
+        open={Boolean(removing)}
+        title="Remove this saved look?"
+        body="The look leaves your saved list. Your clothes and wear history stay as they are."
+        confirmLabel="Remove look"
+        onCancel={() => setRemoving(null)}
+        onConfirm={async () => {
+          await api.del(`/api/outfits/${removing!.id}`)
+          setRemoving(null)
+          toast('Look removed')
+          await qc.invalidateQueries({ queryKey: ['looks'] })
+        }}
+      />
+    </section>
   )
 }
 

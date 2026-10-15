@@ -21,6 +21,8 @@ const Colors = lazy(() => import('./pages/Colors'))
 const MatchReview = lazy(() => import('./pages/MatchReview'))
 const ReviewDetail = lazy(() => import('./pages/ReviewDetail'))
 const Notifications = lazy(() => import('./pages/Notifications'))
+const Ask = lazy(() => import('./pages/Ask'))
+const Compare = lazy(() => import('./pages/Compare'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: (n, err) => n < 1 && !(err as { status?: number })?.status, refetchOnWindowFocus: false } },
@@ -57,6 +59,8 @@ const router = createBrowserRouter([
           { path: '/review', element: <Review /> },
           { path: '/review/:id', element: <ReviewDetail /> },
           { path: '/notifications', element: <Notifications /> },
+          { path: '/ask', element: <Ask /> },
+          { path: '/compare', element: <Compare /> },
           { path: '/history', element: <History /> },
           { path: '/history/photos/:id', element: <MatchReview /> },
           { path: '/settings', element: <Settings /> },
