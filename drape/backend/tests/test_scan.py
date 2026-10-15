@@ -83,6 +83,7 @@ def test_busy_background_fails_border_method():
 
 
 def test_shape_guesses():
+    assert guess_from_shape(border_mask(garment_photo("layer", "#5F6136", seed=8)))[0] == "top"
     for cat in ("bottom", "shoes"):
         img = garment_photo(cat, "#1F2D4D", seed=5)
         mask = border_mask(img)

@@ -128,3 +128,21 @@ def test_validation_errors_are_readable(client, user_a):
     r = client.post("/api/garments", json={"draft_id": "not-a-uuid", "name": "", "category": "hat"}, headers=user_a)
     assert r.status_code == 422
     assert r.json()["detail"].startswith("Check these fields")
+
+
+def test_nudge_due_and_keep_it_snoozes(client, user_a):
+    from datetime import date, timedelta
+
+    from sqlalchemy import update
+
+    from app.db import session_scope
+    from app.models import Garment
+
+    g = add_garment(client, user_a, "top", "#9CAA8C", seed=12)
+    with session_scope() as db:
+        db.execute(update(Garment).where(Garment.id == g["id"]).values(created_at=date.today() - timedelta(days=120)))
+    d = client.get(f"/api/garments/{g['id']}", headers=user_a).json()
+    assert d["nudge"]["due"] is True and d["nudge"]["idle_days"] >= 120
+    d = client.patch(f"/api/garments/{g['id']}", json={"snooze_nudge": True}, headers=user_a).json()
+    assert d["nudge"]["due"] is False and d["nudge"]["snoozed_until"]
+    client.patch("/api/me", json={"nudge_days": 200}, headers=user_a)

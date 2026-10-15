@@ -56,8 +56,10 @@ def seed_demo(db: Session, today: date | None = None) -> Profile:
     db.flush()
     db.add(ColorPrefs(user_id=uid, favorites=["navy", "olive"], avoid=[]))
     by_slug: dict[str, Garment] = {}
-    for art in GARMENTS:
+    now = datetime.now(UTC)
+    for i, art in enumerate(GARMENTS):
         g = garment_from_art(uid, art)
+        g.created_at = now - timedelta(seconds=i)
         by_slug[art.slug] = g
         db.add(g)
     db.flush()

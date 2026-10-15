@@ -14,6 +14,15 @@ const SCREENS: Screen[] = [
   { name: 'home', path: '/' },
   { name: 'closet', path: '/closet' },
   { name: 'add-garment', path: '/closet/add' },
+  {
+    name: 'add-garment-review',
+    path: '/closet/add',
+    action: async (p) => {
+      const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'fixtures')
+      await p.locator('#files-input').setInputFiles([`${dir}/garment-08-olive-layer.jpg`, `${dir}/garment-01-cream-top.jpg`])
+      await expect(p.getByText('1 of 2 to review')).toBeVisible({ timeout: 60_000 })
+    },
+  },
   { name: 'garment-detail', path: '/closet', action: async (p) => { await p.getByRole('button', { name: /Olive cardigan/ }).first().click() } },
   { name: 'review', path: '/review' },
   { name: 'history', path: '/history' },

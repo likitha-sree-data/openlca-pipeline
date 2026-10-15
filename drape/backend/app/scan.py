@@ -297,7 +297,7 @@ def guess_from_shape(mask: np.ndarray | None) -> tuple[str, str, float]:
     widths = [m[int(h * f)].sum() for f in (0.1, 0.5, 0.9)]
     if aspect > 1.45 and widths[2] >= widths[1] * 1.05:
         return "dress", "dress", 0.5
-    if aspect < 1.3 and widths[0] < widths[2] * 0.85 and widths[0] < w * 0.75:
+    if aspect < 1.3 and widths[0] < widths[2] * 0.85 and widths[0] < w * 0.75 and widths[1] <= widths[2]:
         return "bottom", "skirt", 0.45
     return "top", "top", 0.5
 

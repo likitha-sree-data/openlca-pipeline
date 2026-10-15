@@ -92,6 +92,7 @@ class Garment(Base):
     sha256: Mapped[str | None] = mapped_column(Text)
     phash: Mapped[str | None] = mapped_column(Text)
     needs_review: Mapped[bool] = mapped_column(Boolean, default=False)
+    nudge_snoozed_until: Mapped[date | None] = mapped_column(Date)
     bytes: Mapped[int] = mapped_column(BigInteger, default=0)
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

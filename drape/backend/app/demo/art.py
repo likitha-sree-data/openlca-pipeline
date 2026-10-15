@@ -135,13 +135,36 @@ GARMENTS: list[DemoGarment] = [
 CANDIDATE = DemoGarment("navy-knit-sweater", "Navy knit sweater", "top", "sweater", "#24345A", 1, 3, sweater("#24345A", "#3A4A72"), 65, "wool")
 
 
+def _bbox(g: DemoGarment, pad: float = 4) -> tuple[float, float, float, float]:
+    xs: list[float] = []
+    ys: list[float] = []
+    for p in g.prims:
+        if p[0] in ("poly", "line"):
+            xs += [x for x, _ in p[1]]
+            ys += [y for _, y in p[1]]
+        elif p[0] == "circle":
+            xs += [p[1] - p[3], p[1] + p[3]]
+            ys += [p[2] - p[3], p[2] + p[3]]
+        elif p[0] == "rect":
+            xs += [p[1], p[3]]
+            ys += [p[2], p[4]]
+    return min(xs) - pad, min(ys) - pad, max(xs) - min(xs) + 2 * pad, max(ys) - min(ys) + 2 * pad
+
+
+def _light(hex_value: str) -> bool:
+    r, g, b = (int(hex_value[i:i + 2], 16) for i in (1, 3, 5))
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.85
+
+
 def to_svg(g: DemoGarment) -> str:
-    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" role="img" aria-label="{g.name}">']
+    x, y, w, h = _bbox(g)
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x:g} {y:g} {w:g} {h:g}" role="img" aria-label="{g.name}">']
     for p in g.prims:
         kind = p[0]
         if kind == "poly":
             pts = " ".join(f"{x},{y}" for x, y in p[1])
-            parts.append(f'<polygon points="{pts}" fill="{p[2]}" stroke="{p[2]}" stroke-width="2" stroke-linejoin="round"/>')
+            stroke = "#BDB6AB" if _light(p[2]) else p[2]
+            parts.append(f'<polygon points="{pts}" fill="{p[2]}" stroke="{stroke}" stroke-width="2" stroke-linejoin="round"/>')
         elif kind == "line":
             pts = " ".join(f"{x},{y}" for x, y in p[1])
             parts.append(f'<polyline points="{pts}" fill="none" stroke="{p[2]}" stroke-width="{p[3]}" stroke-linecap="round" stroke-linejoin="round"/>')

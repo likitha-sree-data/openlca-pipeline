@@ -233,7 +233,9 @@ def garment_detail(garment_id: uuid.UUID, user: CurrentUser = Depends(current_us
     last = out["last_worn"]
     ref = date.fromisoformat(last) if last else (g.created_at.date() if g.created_at else date.today())
     idle = (date.today() - ref).days
-    out["nudge"] = {"due": g.status == "active" and idle >= days, "idle_days": idle, "threshold": days, "never_worn": last is None}
+    snoozed = g.nudge_snoozed_until is not None and g.nudge_snoozed_until > date.today()
+    out["nudge"] = {"due": g.status == "active" and idle >= days and not snoozed, "idle_days": idle, "threshold": days,
+                    "never_worn": last is None, "snoozed_until": g.nudge_snoozed_until.isoformat() if g.nudge_snoozed_until else None}
     out["resale_links"] = resale_links(g.name)
     return out
 
@@ -274,6 +276,7 @@ class GarmentPatch(BaseModel):
     needs_review: bool | None = None
     clear_price: bool = False
     clear_purchased_on: bool = False
+    snooze_nudge: bool = False
 
 
 @router.patch("/garments/{garment_id}")
@@ -292,6 +295,10 @@ def update_garment(garment_id: uuid.UUID, body: GarmentPatch, user: CurrentUser 
         g.price = None
     if body.clear_purchased_on:
         g.purchased_on = None
+    if body.snooze_nudge:
+        from datetime import timedelta
+
+        g.nudge_snoozed_until = date.today() + timedelta(days=user.profile.nudge_days)
     if "color_name" in data or "color_hex" in data:
         _apply_color(g, data.get("color_name"), data.get("color_hex"))
     if {"category", "color_name", "color_hex", "pattern", "formality", "status"} & set(data):
