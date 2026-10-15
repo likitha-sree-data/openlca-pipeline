@@ -17,6 +17,7 @@ const GarmentDetail = lazy(() => import('./pages/GarmentDetail'))
 const Review = lazy(() => import('./pages/Review'))
 const History = lazy(() => import('./pages/History'))
 const Settings = lazy(() => import('./pages/Settings'))
+const Colors = lazy(() => import('./pages/Colors'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: (n, err) => n < 1 && !(err as { status?: number })?.status, refetchOnWindowFocus: false } },
@@ -53,6 +54,7 @@ const router = createBrowserRouter([
           { path: '/review', element: <Review /> },
           { path: '/history', element: <History /> },
           { path: '/settings', element: <Settings /> },
+          { path: '/settings/colors', element: <Colors /> },
           { path: '*', element: <NotFound /> },
         ],
       },

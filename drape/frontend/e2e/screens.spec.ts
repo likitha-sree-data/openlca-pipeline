@@ -49,7 +49,15 @@ for (const width of [390, 1280]) {
         await s.action(page)
         await page.waitForLoadState('networkidle')
       }
-      await page.waitForTimeout(400)
+      await page.evaluate(async () => {
+        for (let y = 0; y < document.body.scrollHeight; y += 600) {
+          window.scrollTo(0, y)
+          await new Promise((r) => setTimeout(r, 60))
+        }
+        window.scrollTo(0, 0)
+      })
+      await page.waitForLoadState('networkidle')
+      await page.waitForTimeout(300)
       await page.screenshot({ path: `${OUT}/${s.name}-${width}.png`, fullPage: true })
     }
     await page.goto('/signin')
