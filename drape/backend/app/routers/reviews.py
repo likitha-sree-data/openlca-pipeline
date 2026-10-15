@@ -93,12 +93,21 @@ def review_out(db: Session, user: CurrentUser, r: Review) -> dict[str, Any]:
         "similar": [{**s, "garment": gmap.get(s["garment_id"])} for s in r.similar if s["garment_id"] in gmap] if show_wardrobe else None,
         "works_with": [gmap[str(i)] for i in r.works_with_ids if str(i) in gmap] if show_wardrobe else None,
         "new_outfit_count": r.new_outfit_count if show_wardrobe else None,
+        "study": _study(db, user, r),
         "waiting": None if w is None else {
             "id": str(w.id), "saved_at": w.saved_at.isoformat(), "due_at": w.due_at.isoformat(), "status": w.status,
             "note": w.note, "due": w.due_at <= now, "seconds_left": max(0, int((w.due_at - now).total_seconds())),
             "answered_at": w.answered_at.isoformat() if w.answered_at else None,
         },
     }
+
+
+def _study(db: Session, user: CurrentUser, r: Review) -> dict[str, Any] | None:
+    if not get_settings().study_mode:
+        return None
+    from .study import study_info
+
+    return study_info(db, user.id, r)
 
 
 def _price(value: str | None) -> Decimal | None:
@@ -211,7 +220,12 @@ def list_reviews(user: CurrentUser = Depends(current_user), db: Session = Depend
 
 @router.get("/reviews/{review_id}")
 def get_review(review_id: uuid.UUID, user: CurrentUser = Depends(current_user), db: Session = Depends(get_db)) -> dict:
-    return review_out(db, user, _owned(db, user, review_id))
+    r = _owned(db, user, review_id)
+    if get_settings().study_mode:
+        from .study import record_view
+
+        record_view(db, user.id, r)
+    return review_out(db, user, r)
 
 
 @router.delete("/reviews/{review_id}", status_code=204)
@@ -223,6 +237,11 @@ def delete_review(review_id: uuid.UUID, user: CurrentUser = Depends(current_user
 
 class DecisionIn(BaseModel):
     decision: Literal["save", "keep_browsing"]
+    # study questions, required only for study participants
+    reasons: list[str] = Field(default=[], max_length=7)
+    reason_other: str | None = Field(default=None, max_length=300)
+    confidence: int | None = Field(default=None, ge=1, le=7)
+    shown_at: datetime | None = None
 
 
 def record_decision(db: Session, r: Review, decision: str, now: datetime | None = None) -> None:
@@ -240,13 +259,25 @@ def record_decision(db: Session, r: Review, decision: str, now: datetime | None 
 @router.post("/reviews/{review_id}/decision")
 def decide(review_id: uuid.UUID, body: DecisionIn, user: CurrentUser = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     r = _owned(db, user, review_id)
+    participant = None
+    if get_settings().study_mode:
+        from .study import StudyDecisionIn, active_participant, record_study_decision
+
+        participant = active_participant(db, user.id)
+        if participant is not None and body.confidence is None:
+            raise HTTPException(400, "Answer how sure you feel before you choose.")
     record_decision(db, r, body.decision)
+    if participant is not None:
+        record_study_decision(db, user, r, StudyDecisionIn(decision=body.decision, reasons=body.reasons,
+                                                           reason_other=body.reason_other, confidence=body.confidence))
+        db.flush()
     return review_out(db, user, r)
 
 
 class AnswerIn(BaseModel):
     status: Literal["bought", "skipped", "thinking"]
     note: str | None = Field(default=None, max_length=500)
+    still_want: int | None = Field(default=None, ge=1, le=7)
 
 
 @router.post("/waiting/{waiting_id}/answer")
@@ -259,6 +290,11 @@ def answer(waiting_id: uuid.UUID, body: AnswerIn, user: CurrentUser = Depends(cu
     w.answered_at = datetime.now(UTC)
     db.flush()
     r = db.get(Review, w.review_id)
+    if get_settings().study_mode:
+        from .study import save_followup
+
+        save_followup(db, user.id, r, {"bought": "yes", "skipped": "no", "thinking": "unsure"}[body.status], body.still_want)
+        db.flush()
     db.refresh(r)
     return review_out(db, user, r)
 

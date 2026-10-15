@@ -262,6 +262,12 @@ class Consent(Base):
     withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class StudyState(Base):
+    __tablename__ = "study_state"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    next_index: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class StudyParticipant(Base):
     __tablename__ = "study_participants"
     id: Mapped[uuid.UUID] = _uuid()
@@ -304,6 +310,7 @@ class StudyDecision(Base):
     time_on_page_ms: Mapped[int] = mapped_column(Integer)
     similar_count: Mapped[int | None] = mapped_column(Integer)
     new_outfit_count: Mapped[int | None] = mapped_column(Integer)
+    followup_notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class StudyFollowup(Base):

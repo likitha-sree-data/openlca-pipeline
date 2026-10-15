@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-data = ROOT / ".data" / "e2e"
+data = ROOT / ".data" / os.environ.get("E2E_DATA_NAME", "e2e")
 shutil.rmtree(data, ignore_errors=True)
 data.mkdir(parents=True, exist_ok=True)
 

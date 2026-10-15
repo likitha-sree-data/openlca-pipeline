@@ -78,3 +78,28 @@ for (const width of [390, 1280]) {
     await page.screenshot({ path: `${OUT}/signin-${width}.png`, fullPage: true })
   })
 }
+
+for (const width of [390, 1280]) {
+  test(`study screens at ${width}px`, async ({ browser }) => {
+    const { STUDY_PORT } = await import('../playwright.config')
+    const context = await browser.newContext({ baseURL: `http://127.0.0.1:${STUDY_PORT}`, viewport: { width, height: 900 } })
+    const page = await context.newPage()
+    for (const [email, shots] of [
+      [`screens-${width}-${Date.now()}@example.com`, [['study-consent', '/study']]],
+      ['admin@example.com', [['study-admin', '/admin']]],
+    ] as const) {
+      await page.goto('/signin')
+      await page.evaluate(() => localStorage.clear())
+      await page.goto('/signin')
+      await page.getByLabel('Email').fill(email)
+      await page.getByRole('button', { name: 'Continue' }).click()
+      await expect(page.getByRole('heading', { name: "Today's outfit." })).toBeVisible()
+      for (const [name, p] of shots) {
+        await page.goto(p)
+        await page.waitForLoadState('networkidle')
+        await page.screenshot({ path: `${OUT}/${name}-${width}.png`, fullPage: true })
+      }
+    }
+    await context.close()
+  })
+}

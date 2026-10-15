@@ -65,6 +65,7 @@ def client(app):
 
 def login(client, email=None):
     email = email or f"user-{uuid.uuid4().hex[:8]}@example.com"
+    ratelimit.reset()  # many simulated sign-ins from one test client address
     r = client.post("/api/auth/dev-login", json={"email": email})
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}

@@ -8,7 +8,7 @@ import { ErrorNote, Loading } from '@/components/ui'
 import { GarmentImage } from '@/components/garment'
 import { WaitingAnswer, countdown } from '@/components/WaitingAnswer'
 import { ChevronLeft } from '@/components/icons'
-import StudyQuestions from './StudyQuestions'
+import { StudyFollowup, StudyQuestions, type StudyAnswers } from './StudyQuestions'
 
 export default function ReviewDetail() {
   const { id } = useParams()
@@ -30,17 +30,22 @@ function View({ r }: { r: ReviewItem }) {
     return () => clearInterval(t)
   }, [])
   const treatment = r.condition === 'treatment'
-  const studyQuestions = config?.study_mode && r.study?.needs_questions
+  const studyQuestions = Boolean(config?.study_mode && r.study?.needs_questions)
+  const [asking, setAsking] = useState<'save' | 'keep_browsing' | null>(null)
 
-  const decide = async (decision: 'save' | 'keep_browsing') => {
+  const choose = (decision: 'save' | 'keep_browsing') => (studyQuestions ? setAsking(decision) : decide(decision))
+
+  const decide = async (decision: 'save' | 'keep_browsing', answers?: StudyAnswers) => {
     setBusy(true)
     setError(null)
     try {
-      await api.post(`/api/reviews/${r.id}/decision`, { decision, shown_at: shownAt.current })
+      await api.post(`/api/reviews/${r.id}/decision`, { decision, shown_at: shownAt.current, ...(answers ?? {}) })
+      setAsking(null)
       await qc.invalidateQueries({ queryKey: ['review', r.id] })
       await qc.invalidateQueries({ queryKey: ['reviews'] })
     } catch (e) {
       setError(e)
+      if (answers) throw e
     } finally {
       setBusy(false)
     }
@@ -112,8 +117,8 @@ function View({ r }: { r: ReviewItem }) {
             {r.decision === null ? (
               <>
                 <div className="grid grid-cols-2 gap-3">
-                  <button type="button" className="btn-secondary" disabled={busy} onClick={() => decide('save')}>Save for 48 hours</button>
-                  <button type="button" className="btn-secondary" disabled={busy} onClick={() => decide('keep_browsing')}>Keep browsing</button>
+                  <button type="button" className="btn-secondary" disabled={busy} onClick={() => choose('save')}>Save for 48 hours</button>
+                  <button type="button" className="btn-secondary" disabled={busy} onClick={() => choose('keep_browsing')}>Keep browsing</button>
                 </div>
                 <p className="mt-2 text-[13px] text-ink2">Both are good choices. Saving gives you two days to think it over.</p>
               </>
@@ -121,14 +126,23 @@ function View({ r }: { r: ReviewItem }) {
               <div className="card p-4">
                 <p className="font-medium">Saved to your waiting list.</p>
                 <p className="text-[15px] text-ink2">{r.waiting.status === 'waiting' ? countdown(leftSeconds) : `Answered: ${r.waiting.status}.`}</p>
-                {(r.waiting.due || r.waiting.status !== 'waiting') && <div className="mt-4"><WaitingAnswer review={r} /></div>}
+                {(r.waiting.due || r.waiting.status !== 'waiting') && <div className="mt-4"><WaitingAnswer review={r} askStillWant={Boolean(r.study)} /></div>}
               </div>
             ) : (
               <p className="card p-4 text-[15px]">You chose to keep browsing.</p>
             )}
             {error ? <div className="mt-3"><ErrorNote error={error} /></div> : null}
           </section>
-          {studyQuestions && <StudyQuestions review={r} />}
+          {r.study?.needs_followup && r.decision === 'keep_browsing' && <StudyFollowup review={r} />}
+          {asking && (
+            <StudyQuestions
+              decision={asking}
+              onClose={() => setAsking(null)}
+              onSubmit={async (a) => {
+                await decide(asking, a)
+              }}
+            />
+          )}
         </div>
       </div>
     </>

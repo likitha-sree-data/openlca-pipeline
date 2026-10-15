@@ -47,7 +47,7 @@ export default function Review() {
                     {r.waiting!.note ? `. ${r.waiting!.note}` : ''}
                   </p>
                   {r.waiting!.due || r.waiting!.status !== 'waiting' ? (
-                    <div className="mt-3"><WaitingAnswer review={r} /></div>
+                    <div className="mt-3"><WaitingAnswer review={r} askStillWant={Boolean(r.study)} /></div>
                   ) : (
                     <Link to={`/review/${r.id}`} className="mt-2 inline-block text-[15px] text-accent underline-offset-2 hover:underline">See the comparison</Link>
                   )}

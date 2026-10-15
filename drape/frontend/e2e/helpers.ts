@@ -15,8 +15,7 @@ export async function signIn(page: Page, email = uniqueEmail()) {
   await page.goto('/signin')
   await page.getByLabel('Email').fill(email)
   await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByRole('heading', { name: "Today's outfit." })).toBeVisible()
   return email
 }
 

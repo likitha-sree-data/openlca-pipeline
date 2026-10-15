@@ -56,3 +56,11 @@ One line per choice where the spec is silent.
 - Account deletion also deletes the Supabase Auth user through the admin API when the service key is set.
 - Exports leave out garment embeddings (512 numbers each, not meaningful to a person) and the versatility cache.
 - Saved looks are listed in History so any two can be compared, as the spec asks.
+- Study settings live in `backend/app/study_config.py`, with `STUDY_DESIGN`, `STUDY_BLOCK_SIZE`, `STUDY_TARGET_N` and `STUDY_SEED` environment overrides.
+- Arm order inside each randomization block is a shuffle seeded by `STUDY_SEED` and the block number, so it is reproducible for audits but not guessable without the secret.
+- In study mode every decision, including Keep browsing, gets a later purchase check after 48 hours (in-app question for Keep browsing, the Still want it? flow for saved items).
+- Study participants answer the reasons and confidence questions in a dialog right after choosing; the decision is recorded together with the answers.
+- Time on page is measured on the server, from the first view of the item page to the decision.
+- Free-text Other reasons are exported with emails, links and phone numbers redacted.
+- A participant who left the study cannot rejoin with the same account unless they asked for their study data to be deleted.
+- The e2e suite runs a second test server with study mode on and its own database; test-only fakes (a fake shop and an aging hook) live only in `backend/scripts/serve_e2e.py`.
