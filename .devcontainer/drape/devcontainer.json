@@ -1,0 +1,26 @@
+{
+  "name": "Drape",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [7860, 5173],
+  "portsAttributes": {
+    "7860": { "label": "Drape (API and built app)" },
+    "5173": { "label": "Drape (Vite dev server)" }
+  },
+  "containerEnv": {
+    "DATABASE_URL": "postgresql+psycopg://postgres:postgres@db:5432/drape",
+    "TEST_DATABASE_URL": "postgresql+psycopg://postgres:postgres@db:5432/drape_test",
+    "E2E_DATABASE_URL": "postgresql+psycopg://postgres:postgres@db:5432/drape_e2e"
+  },
+  "postCreateCommand": "bash drape/scripts/codespace-setup.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "dbaeumer.vscode-eslint", "bradlc.vscode-tailwindcss", "ms-playwright.playwright"]
+    }
+  }
+}

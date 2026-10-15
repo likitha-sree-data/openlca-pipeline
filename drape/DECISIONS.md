@@ -1,0 +1,48 @@
+# Decisions
+
+One line per choice where the spec is silent.
+
+- The repo already holds an unrelated openLCA pipeline, so Drape lives in `drape/` and repo-level files (devcontainer, workflows) are namespaced `drape`.
+- No `wardrobe-api` prototype exists in the repo, so scan, engine and layout logic are written from scratch.
+- Flat-lay layout is done only in the React `FlatLay` component; there is no server-side `board.py` because no screen needs a server-rendered board.
+- The Codespaces config is `.devcontainer/drape/devcontainer.json` so the existing openLCA devcontainer keeps working.
+- Tailwind CSS 3.4 is used (config-file tokens map cleanly onto the CSS variables).
+- Fonts are self-hosted through `@fontsource-variable/source-serif-4` and `@fontsource-variable/inter`, bundled by Vite.
+- Wear count and last worn are always computed from `wear_logs`, never stored on `garments`, so every number traces to logs.
+- `outfits` gets a nullable `worn_on` date; a history entry is an outfit with `worn_on` set.
+- `waiting_list` gets `id`, `user_id` and `notified_at`; "due" means `due_at <= now()` and the cron sets `notified_at` once.
+- Scan results are held as `scan_drafts` rows plus temp files until Save; drafts older than 24 hours are removed by the cron.
+- Exact duplicate means same SHA-256 of the uploaded bytes; near-duplicate means 64-bit dHash distance at most 10 or embedding cosine at least 0.94 with the same category.
+- Category families for similarity: upper (top, layer), lower (bottom), dress, shoes, accessory.
+- Valid outfit (for versatility and new outfit count): one piece per slot, no color clash (pair score below 0), not two patterns, formality spread at most 1, status active or keepsake.
+- Keepsake pieces stay eligible for suggestions; for sale, donate and archived pieces are excluded by default.
+- Occasion formality targets: Weekend 1.0, Everyday 1.3, Date 2.0, Work 2.0, Meeting 2.5, Formal 3.0.
+- Weather warmth target: 24°C and above is light, 14 to 24°C is medium, below 14°C is warm; a layer gets a bonus below 16°C.
+- Learned taste is a per-user logistic model stored as jsonb on `profiles` with features item, color and color pair; learning rate 0.3.
+- Diversity: a piece may appear in at most half of a suggestion set (rounded up), relaxed only when the wardrobe is too small.
+- Auth accepts two token issuers: Supabase (JWKS or HS256 secret) and Drape itself (HS256 `APP_SECRET`) for demo and dev sessions.
+- Dev sign-in (`AUTH_DEV_LOGIN=true`) is for local, CI and e2e only and is refused when `ENVIRONMENT=production`.
+- Storage driver `local` signs URLs with HMAC and an expiry; driver `supabase` uses the Storage REST API with the service role key.
+- Garment cutouts are stored as PNG and thumbnails as WebP (both keep alpha); uploaded originals are re-encoded so EXIF is gone.
+- Browser resize: photos larger than 1400px are redrawn on a white canvas and uploaded as JPEG 0.88; a PNG that already has transparency is uploaded unchanged so its cutout survives.
+- Color-profile photos are interpreted as photos of outfits the person feels good in; Drape extracts their dominant colors and offers them as favorite colors. It never analyzes skin, hair or faces.
+- The color-profile flag is `FEATURE_COLOR_PROFILE`, off by default.
+- Chat history is stored in `chat_messages`; daily cap default 50 messages, rate limit 10 per minute.
+- Rate limits are in-process token buckets (one Space instance); daily caps are counted in Postgres.
+- Per-user storage quota default 300 MB, tracked in `profiles.storage_bytes`.
+- Admin role is `profiles.is_admin`, set automatically for emails listed in `ADMIN_EMAILS`.
+- Within-subject design alternates conditions per review, starting with the participant's counterbalanced first condition (AB or BA).
+- Blocked randomization uses block size 4 by default, a seeded permutation per block, and a locked counter row so concurrent sign-ups stay balanced.
+- Study participant code is `P` plus 6 random base32 characters, stored only in study tables.
+- Withdrawal stops collection immediately; deleting study data is a separate checkbox on the withdraw dialog.
+- Demo garments are vector illustrations served as static SVGs (`demo:` image paths); their colors and embeddings come from the same shapes rasterized with Pillow.
+- Demo sandbox accounts expire after 24 hours and are deleted by the hourly cron.
+- Planned days are unique per user and date; planning a date again replaces it.
+- Notifications are in-app rows; email is sent in addition only when `RESEND_API_KEY` is set and the person allowed email.
+- Temperature unit preference only affects display; the API works in Celsius.
+- Nudge threshold for unworn pieces is per user (`profiles.nudge_days`, default 90).
+- Resale search links: Vinted, eBay, Depop search URLs with the garment name; donation uses a Google Maps search for "clothing donation" near the person.
+- Outfit photo: the original is kept in the private bucket only until confirmation, then deleted unless "Keep my original photo" is on.
+- Segmentation fallback (no SegFormer): the person cutout is split into body bands (upper, lower, shoes); detections are marked low confidence.
+- Embedding fallback (no FashionCLIP): 512-d vector of color histograms, silhouette and texture features; category guess then comes from silhouette rules and is marked for review.
+- Link fetch limits: 5 second timeout per hop, 3 redirects, 2 MB body cap, only ports 80 and 443.

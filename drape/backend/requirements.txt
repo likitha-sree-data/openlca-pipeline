@@ -1,0 +1,19 @@
+# Core API. Pinned to versions verified in development.
+fastapi==0.143.1
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+pydantic-settings==2.16.0
+email-validator==2.3.0
+sqlalchemy==2.1.4
+psycopg[binary]==3.3.6
+pgvector==0.5.1
+pyjwt[crypto]==2.15.1
+httpx==0.28.1
+python-multipart==0.0.32
+pillow==12.3.0
+numpy==2.4.6
+scikit-learn==1.9.1
+scikit-image==0.26.0
+# Cutout model runtime (u2netp)
+rembg==2.0.85
+onnxruntime==1.31.0

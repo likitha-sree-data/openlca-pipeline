@@ -1,0 +1,5 @@
+# Optional models for FashionCLIP embeddings and SegFormer clothes parsing.
+# Installed in the Docker image. Without these, Drape uses tested fallbacks.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
+transformers==4.46.3

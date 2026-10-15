@@ -1,0 +1,54 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/source-serif-4';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 248 247 243; /* #F8F7F3 */
+  --surface: 236 233 228; /* #ECE9E4 */
+  --raised: 252 251 248; /* #FCFBF8 */
+  --line: 218 214 207; /* #DAD6CF */
+  --line-strong: 143 138 130; /* #8F8A82 */
+  --ink: 31 47 41; /* #1F2F29 */
+  --ink-2: 74 87 82; /* #4A5752 */
+  --primary: 30 59 48; /* #1E3B30 */
+  --primary-hover: 40 77 63; /* #284D3F */
+  --accent: 63 107 88; /* #3F6B58 */
+  --danger: 138 59 46; /* #8A3B2E */
+  --warn: 154 91 18; /* #9A5B12 */
+  color-scheme: light;
+}
+
+html, body { background: rgb(var(--bg)); color: rgb(var(--ink)); }
+body { font-family: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+h1, h2, h3, .font-serif { font-family: 'Source Serif 4 Variable', Georgia, serif; }
+
+:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; border-radius: 4px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-btn px-4 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]; }
+  .btn-primary { @apply btn bg-primary text-white hover:bg-primary-hover; }
+  .btn-secondary { @apply btn border border-ink/70 text-ink bg-transparent hover:bg-surface; }
+  .btn-quiet { @apply btn text-ink2 hover:text-ink hover:bg-surface; }
+  .btn-danger { @apply btn border border-danger text-danger hover:bg-danger/5; }
+  .btn-sm { @apply min-h-[36px] px-3 py-1.5; }
+  .chip { @apply inline-flex items-center rounded-full border border-line-strong px-3.5 py-1.5 text-sm text-ink transition-colors hover:bg-surface min-h-[36px]; }
+  .chip-active { @apply bg-primary text-white border-primary hover:bg-primary-hover; }
+  .card { @apply rounded-card bg-surface; }
+  .input { @apply w-full rounded-btn border border-line-strong bg-raised px-3 py-2.5 text-[15px] text-ink placeholder:text-ink2/70 min-h-[44px]; }
+  .label { @apply mb-1.5 block text-sm font-medium text-ink; }
+  .hint { @apply mt-1 text-[13px] text-ink2; }
+  .page-title { @apply font-serif text-[32px] leading-tight tracking-tight text-ink md:text-[40px]; }
+  .section-title { @apply font-serif text-[22px] leading-snug text-ink; }
+}
+
+
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { scrollbar-width: none; }
