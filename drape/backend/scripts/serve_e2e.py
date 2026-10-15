@@ -50,6 +50,56 @@ from app import migrate  # noqa: E402
 
 migrate.apply(bootstrap=True)
 
+# ---- test-only fakes, never part of the app itself -------------------------
+# A fake shop at shop.e2e.test (served without network) and a hook that ages
+# saved items past 48 hours so the follow-up can be tested end to end.
+from datetime import UTC, datetime, timedelta  # noqa: E402
+
+from app.routers import reviews as reviews_router  # noqa: E402
+from app.ssrf import Fetched, FetchFailed  # noqa: E402
+from app.testing.synth import garment_photo, jpeg_bytes  # noqa: E402
+
+_real_fetch = reviews_router.safe_fetch
+SHOP_PAGE = (b'<html><head><title>Shop</title><meta property="og:title" content="Navy knit sweater">'
+             b'<meta property="og:image" content="https://shop.e2e.test/sweater.jpg">'
+             b'<meta property="product:price:amount" content="65.00"></head><body></body></html>')
+SWEATER = jpeg_bytes(garment_photo("top", "#24345A", seed=77))
+
+
+def fake_fetch(url, cap=None, **kw):
+    from urllib.parse import urlsplit
+
+    host = urlsplit(url).hostname
+    if host == "shop.e2e.test":
+        if url.endswith(".jpg"):
+            return Fetched(url, SWEATER, "image/jpeg")
+        return Fetched(url, SHOP_PAGE, "text/html")
+    if host == "blocked.e2e.test":
+        raise FetchFailed("This shop blocks automatic checks. Add a screenshot or photo of the item instead.")
+    return _real_fetch(url, cap, **kw) if cap else _real_fetch(url, **kw)
+
+
+reviews_router.safe_fetch = fake_fetch
+
+from app.main import app  # noqa: E402
+from app.db import session_scope  # noqa: E402
+from app.models import WaitingItem  # noqa: E402
+from app.routers.internal import run_due  # noqa: E402
+
+
+@app.post("/e2e/age-waiting", include_in_schema=False)
+def age_waiting() -> dict:
+    with session_scope() as db:
+        for w in db.query(WaitingItem).all():
+            w.saved_at -= timedelta(hours=49)
+            w.due_at -= timedelta(hours=49)
+        db.flush()
+        return run_due(db, now=datetime.now(UTC))
+
+
+# the SPA catch-all was registered first, so move the test route ahead of it
+app.router.routes.insert(0, app.router.routes.pop())
+
 import uvicorn  # noqa: E402
 
-uvicorn.run("app.main:app", host="127.0.0.1", port=int(os.environ.get("E2E_PORT", "7861")), log_level="warning")
+uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("E2E_PORT", "7861")), log_level="warning")

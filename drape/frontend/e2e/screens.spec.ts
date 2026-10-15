@@ -25,6 +25,7 @@ const SCREENS: Screen[] = [
   },
   { name: 'garment-detail', path: '/closet', action: async (p) => { await p.getByRole('button', { name: /Olive cardigan/ }).first().click() } },
   { name: 'review', path: '/review' },
+  { name: 'review-detail', path: '/review', action: async (p) => { await p.getByRole('link', { name: /Navy knit sweater/ }).first().click() } },
   { name: 'history', path: '/history' },
   {
     name: 'match-review',

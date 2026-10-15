@@ -114,3 +114,34 @@ export interface AppConfig {
   feature_color_profile: boolean
   llm_provider: string
 }
+
+export interface Waiting {
+  id: string
+  saved_at: string
+  due_at: string
+  status: 'waiting' | 'bought' | 'skipped' | 'thinking'
+  note: string | null
+  due: boolean
+  seconds_left: number
+  answered_at: string | null
+}
+
+export interface ReviewItem {
+  id: string
+  title: string | null
+  source_url: string | null
+  price: number | null
+  image_url: string | null
+  cutout_ok: boolean
+  category: Category | null
+  color: string | null
+  color_hex: string | null
+  condition: 'control' | 'treatment'
+  decision: 'save' | 'keep_browsing' | null
+  created_at: string | null
+  similar: { garment_id: string; score: number; reason: string; garment: Garment }[] | null
+  works_with: Garment[] | null
+  new_outfit_count: number | null
+  waiting: Waiting | null
+  study?: { trial_index: number; needs_questions: boolean; needs_followup: boolean } | null
+}

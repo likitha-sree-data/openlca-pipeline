@@ -52,7 +52,7 @@ def create_app() -> FastAPI:
 
     app.include_router(system.router)
     app.include_router(garments.router)
-    for name in ("outfits", "history", "reviews", "chat", "prefs", "account", "study", "internal", "demo"):
+    for name in ("outfits", "history", "reviews", "notifications", "chat", "prefs", "account", "study", "internal", "demo"):
         try:
             module = __import__(f"app.routers.{name}", fromlist=["router"])
         except ModuleNotFoundError:
