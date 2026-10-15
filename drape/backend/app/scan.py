@@ -104,7 +104,7 @@ def _rembg_session():
         return None
 
 
-def _largest_component(mask: np.ndarray) -> np.ndarray:
+def _largest_component(mask: np.ndarray, keep_ratio: float = 0.15) -> np.ndarray:
     from skimage.measure import label
 
     lab = label(mask, connectivity=2)
@@ -112,18 +112,18 @@ def _largest_component(mask: np.ndarray) -> np.ndarray:
         return mask
     sizes = np.bincount(lab.ravel())
     sizes[0] = 0
-    keep = sizes >= max(sizes.max() * 0.15, 30)
+    keep = sizes >= max(sizes.max() * keep_ratio, 30)
     return keep[lab]
 
 
-def _clean(mask: np.ndarray) -> np.ndarray:
+def _clean(mask: np.ndarray, keep_ratio: float = 0.15) -> np.ndarray:
     from skimage.morphology import closing, disk, opening, remove_small_holes
 
     r = max(1, int(min(mask.shape) / 200))
     m = opening(mask, disk(r))
     m = closing(m, disk(r * 2))
     m = remove_small_holes(m, max_size=int(mask.size * 0.002))
-    return _largest_component(m)
+    return _largest_component(m, keep_ratio)
 
 
 def _mask_ok(mask: np.ndarray) -> bool:
@@ -135,7 +135,7 @@ def _mask_ok(mask: np.ndarray) -> bool:
     return sum(e > 0.6 for e in edges) < 3
 
 
-def border_mask(img: Image.Image) -> np.ndarray | None:
+def border_mask(img: Image.Image, keep_ratio: float = 0.15) -> np.ndarray | None:
     """Plain-background removal using the color of the photo's border."""
     small = to_rgb(fit(img, 512))
     arr = np.asarray(small, dtype=np.float32)
@@ -150,14 +150,14 @@ def border_mask(img: Image.Image) -> np.ndarray | None:
         return None
     dist = np.linalg.norm(lab - bg, axis=2)
     thr = max(14.0, spread * 2.2)
-    mask = _clean(dist > thr)
+    mask = _clean(dist > thr, keep_ratio)
     if not _mask_ok(mask):
         return None
     full = Image.fromarray((mask * 255).astype(np.uint8)).resize(img.size, Image.Resampling.BILINEAR)
     return np.asarray(full) > 127
 
 
-def _rembg_mask(img: Image.Image) -> np.ndarray | None:
+def _rembg_mask(img: Image.Image, keep_ratio: float = 0.15) -> np.ndarray | None:
     session = _rembg_session()
     if session is None:
         return None
@@ -167,7 +167,7 @@ def _rembg_mask(img: Image.Image) -> np.ndarray | None:
     with _rembg_lock:
         out = remove(small, session=session, post_process_mask=True)
     alpha = np.asarray(out.getchannel("A"))
-    mask = _clean(alpha > 128)
+    mask = _clean(alpha > 128, keep_ratio)
     if not _mask_ok(mask):
         return None
     full = Image.fromarray((mask * 255).astype(np.uint8)).resize(img.size, Image.Resampling.BILINEAR)

@@ -18,6 +18,7 @@ const Review = lazy(() => import('./pages/Review'))
 const History = lazy(() => import('./pages/History'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Colors = lazy(() => import('./pages/Colors'))
+const MatchReview = lazy(() => import('./pages/MatchReview'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: (n, err) => n < 1 && !(err as { status?: number })?.status, refetchOnWindowFocus: false } },
@@ -53,6 +54,7 @@ const router = createBrowserRouter([
           { path: '/closet/:id', element: <GarmentDetail /> },
           { path: '/review', element: <Review /> },
           { path: '/history', element: <History /> },
+          { path: '/history/photos/:id', element: <MatchReview /> },
           { path: '/settings', element: <Settings /> },
           { path: '/settings/colors', element: <Colors /> },
           { path: '*', element: <NotFound /> },

@@ -238,7 +238,7 @@ export default function Home() {
 
       <section aria-labelledby="plans-title" className="mt-12">
         <h2 id="plans-title" className="section-title">Planned days</h2>
-        <ul className="scrollbar-none -mx-4 mt-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-7 md:px-0">
+        <ul tabIndex={0} aria-label="Next 7 days" className="scrollbar-none -mx-4 mt-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-7 md:px-0">
           {Array.from({ length: 7 }, (_, i) => {
             const d = new Date()
             d.setDate(d.getDate() + i)

@@ -57,7 +57,7 @@ def garment_photo(category: str, color: str, size: int = 900, bg: str = "#E9E6E1
 
 
 def outfit_photo(top: str, bottom: str, shoes: str, layer: str | None = None, size: tuple[int, int] = (600, 1200),
-                 bg: str = "#E4E0DA", seed: int = 1) -> Image.Image:
+                 bg: str = "#8F8B85", seed: int = 1) -> Image.Image:
     """A flat, faceless figure wearing a top, a bottom and shoes."""
     w, h = size
     img = Image.new("RGB", size, _rgb(bg))
