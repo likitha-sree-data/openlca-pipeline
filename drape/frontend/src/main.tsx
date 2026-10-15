@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './lib/auth'
 import { ToastProvider } from './lib/toast'
 import { AppShell } from './components/AppShell'
 import { Loading } from './components/ui'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import SignIn from './pages/SignIn'
 import NotFound from './pages/NotFound'
 import './styles.css'
@@ -78,6 +79,7 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ToastProvider>
@@ -85,5 +87,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 )

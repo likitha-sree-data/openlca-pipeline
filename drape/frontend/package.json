@@ -10,7 +10,8 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "screens": "playwright test --config playwright.screens.config.ts"
+    "screens": "playwright test --config playwright.screens.config.ts",
+    "perf": "playwright test --config playwright.perf.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

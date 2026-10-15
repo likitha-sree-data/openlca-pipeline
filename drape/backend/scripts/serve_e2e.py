@@ -97,8 +97,42 @@ def age_waiting() -> dict:
         return run_due(db, now=datetime.now(UTC))
 
 
-# the SPA catch-all was registered first, so move the test route ahead of it
-app.router.routes.insert(0, app.router.routes.pop())
+@app.post("/e2e/seed-closet", include_in_schema=False)
+def seed_closet(email: str, n: int = 100) -> dict:
+    """Fill an account with n scanned synthetic garments, for the performance check."""
+    import uuid as _uuid
+
+    from app.auth import ensure_profile
+    from app.images import dhash, encode_png, encode_webp, fit
+    from app.models import Garment
+    from app.scan import scan_image
+    from app.services import store_file
+    from app.testing.synth import garment_photo
+
+    cats = ["top", "bottom", "layer", "shoes", "top", "bottom", "dress"]
+    colors = ["#1F2D4D", "#EDE4CF", "#5F6136", "#B8302F", "#D3C0A0", "#2F5DA8", "#6B4A32", "#9CAA8C", "#3A3D40", "#E3A1B2"]
+    uid = _uuid.uuid5(_uuid.NAMESPACE_URL, f"drape-dev:{email.lower()}")
+    with session_scope() as db:
+        profile = ensure_profile(db, uid, email.lower())
+        for i in range(n):
+            cat, color = cats[i % len(cats)], colors[i % len(colors)]
+            res, cut, emb = scan_image(garment_photo(cat, color, seed=1000 + i, size=700), hint=cat)
+            gid = _uuid.uuid4()
+            img, thumb = f"{uid}/{gid}/cutout.png", f"{uid}/{gid}/thumb.webp"
+            size = store_file(db, profile, "garments", img, encode_png(fit(cut.image, 1024)), "image/png")
+            size += store_file(db, profile, "garments", thumb, encode_webp(fit(cut.image, 360)), "image/webp")
+            db.add(Garment(id=gid, user_id=uid, name=f"{res.name} {i + 1}", category=cat, subtype=res.subtype, color_name=res.color_name,
+                           color_hex=res.color_hex, hue=res.hue, sat=res.sat, val=res.val, pattern=res.pattern, formality=res.formality,
+                           warmth=res.warmth, seasons=res.seasons, fiber_content=[], care={}, status="active", image_path=img,
+                           thumb_path=thumb, cutout_ok=res.cutout_ok, embedding=emb.tolist(), sha256=f"perf-{gid}",
+                           phash=dhash(cut.image), bytes=size))
+        db.flush()
+    return {"seeded": n}
+
+
+# the SPA catch-all was registered first, so move the test routes ahead of it
+for _ in range(2):
+    app.router.routes.insert(0, app.router.routes.pop())
 
 import uvicorn  # noqa: E402
 

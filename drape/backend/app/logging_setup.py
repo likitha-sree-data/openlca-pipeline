@@ -57,3 +57,31 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
                     "request", extra={"path": request.url.path, "method": request.method, "status": status,
                                       "ms": round((time.perf_counter() - start) * 1000, 1)})
             request_id.reset(token)
+
+
+CSP = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob: https://*.supabase.co; "
+    "font-src 'self'; "
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com; "
+    "worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; "
+    "frame-ancestors 'self' https://huggingface.co"
+)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Conservative headers. Framing is allowed only by Hugging Face, which shows Spaces in an iframe."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        h = response.headers
+        h.setdefault("X-Content-Type-Options", "nosniff")
+        h.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        h.setdefault("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()")
+        if not request.url.path.startswith("/api/docs"):
+            h.setdefault("Content-Security-Policy", CSP)
+        if request.url.path.startswith(("/api/", "/internal/")):
+            h.setdefault("Cache-Control", "no-store")
+        return response

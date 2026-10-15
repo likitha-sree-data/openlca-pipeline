@@ -1,0 +1,35 @@
+{
+  "measured_at": "2026-10-15T04:39:57.020Z",
+  "conditions": "Chromium, 390x844, Fast 4G (9 Mbps down, 1.5 Mbps up, 60 ms latency), 4x CPU slowdown, HTTP cache disabled, service worker blocked, 100 garments",
+  "runs": [
+    {
+      "usable_ms": 1184,
+      "lcp_ms": 1252,
+      "first_images_ms": 1416,
+      "transferred_kb": 668
+    },
+    {
+      "usable_ms": 1245,
+      "lcp_ms": 1320,
+      "first_images_ms": 1464,
+      "transferred_kb": 668
+    },
+    {
+      "usable_ms": 1320,
+      "lcp_ms": 1428,
+      "first_images_ms": 1559,
+      "transferred_kb": 668
+    }
+  ],
+  "median_usable_ms": 1245,
+  "median_lcp_ms": 1320,
+  "median_first_images_ms": 1464,
+  "thumbnails_lazy": true,
+  "pwa_installability_errors": [
+    {
+      "errorId": "in-incognito",
+      "errorArguments": []
+    }
+  ],
+  "manifest_name": "Drape"
+}

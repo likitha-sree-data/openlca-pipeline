@@ -13,7 +13,7 @@ const chromium = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: ['**/screens.spec.ts'],
+  testIgnore: ['**/screens.spec.ts', '**/perf.spec.ts'],
   timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,

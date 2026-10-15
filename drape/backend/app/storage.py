@@ -93,11 +93,11 @@ class LocalStorage:
 
 
 class SupabaseStorage:
-    def __init__(self, url: str, key: str, ttl: int) -> None:
+    def __init__(self, url: str, key: str, ttl: int, transport: httpx.BaseTransport | None = None) -> None:
         self.base = url.rstrip("/") + "/storage/v1"
         self.headers = {"Authorization": f"Bearer {key}", "apikey": key}
         self.ttl = ttl
-        self.client = httpx.Client(timeout=20)
+        self.client = httpx.Client(timeout=20, transport=transport)
 
     def put(self, bucket: str, path: str, data: bytes, content_type: str) -> None:
         _check(bucket, path)

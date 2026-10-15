@@ -27,7 +27,8 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/media\//, /^\/internal\//],
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png}', '**/*latin-wght-normal*.woff2'],
+        globIgnores: ['**/*latin-ext*'],
         runtimeCaching: [],
       },
     }),

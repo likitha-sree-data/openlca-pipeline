@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import get_settings
-from .logging_setup import RequestIdMiddleware, setup
+from .logging_setup import RequestIdMiddleware, SecurityHeadersMiddleware, setup
 from .storage import LocalStorage, get_storage
 
 log = logging.getLogger("drape")
@@ -26,8 +26,11 @@ def _friendly_field(loc: tuple) -> str:
 def create_app() -> FastAPI:
     s = get_settings()
     setup(s.log_level)
+    if s.is_production and (s.app_secret.startswith("dev-only") or len(s.app_secret) < 32):
+        raise RuntimeError("Set APP_SECRET to a random string of at least 32 characters before running in production.")
     app = FastAPI(title="Drape API", version="1.0.0", docs_url="/api/docs" if not s.is_production else None,
                   openapi_url="/api/openapi.json" if not s.is_production else None)
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestIdMiddleware)
     if not s.is_production:
         app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_methods=["*"],

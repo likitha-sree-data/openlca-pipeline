@@ -54,14 +54,14 @@ Repo-level files: `.devcontainer/drape/devcontainer.json` (a second Codespaces c
 
 ## Milestones
 
-- [ ] M0 Foundation: repo layout, devcontainer, migrations, auth, app shell with four tabs, tokens, FlatLay with fixtures, demo seed, CI. Accept: sign in, tabs render, isolation tests pass.
-- [ ] M1 Closet: add garment single and batch, scan, review details, grid, filters, search, sort, details, care, status, delete. Accept: 12 synthetic photos in one batch, fix a wrong category, filter and search, survives reload.
-- [ ] M2 Home: engine, today's outfit, swap, save look, plan a day, colors, more outfits, versatility, wear today, weather. Accept: engine property tests, saved looks persist, planned strip.
-- [ ] M3 History: wear logs, history cards, outfit photo upload, segmentation, matching, confirm, insights. Accept: wear counts change only after confirm, exactly once per garment, original deleted by default.
-- [ ] M4 Review: photo and link input, SSRF-safe fetch, similar, works with, new outfit count, 48-hour save, waiting list, follow-up. Accept: demo candidate shows navy cardigan, due at T plus 48 hours, cron marks it due.
-- [ ] M5 Ask, Compare, care, preferences: chat with tools and fallback, compare, nudges, color-profile flag, export, delete account, unsaved guard. Accept: chat never returns a missing id, export and delete verified.
-- [ ] M6 Study layer: consent, randomization, control and treatment, events, follow-ups, admin, CSV, codebook, usability kit. Accept: 40 simulated participants balanced, CSV has no personal fields.
-- [ ] M7 Hardening and deploy: rate limits, quotas, error states, accessibility, README, Dockerfile, demo polish. Accept: full e2e suite passes against a production build.
+- [x] M0 Foundation: repo layout, devcontainer, migrations, auth, app shell with four tabs, tokens, FlatLay with fixtures, demo seed, CI. Accept: sign in, tabs render, isolation tests pass.
+- [x] M1 Closet: add garment single and batch, scan, review details, grid, filters, search, sort, details, care, status, delete. Accept: 12 synthetic photos in one batch, fix a wrong category, filter and search, survives reload.
+- [x] M2 Home: engine, today's outfit, swap, save look, plan a day, colors, more outfits, versatility, wear today, weather. Accept: engine property tests, saved looks persist, planned strip.
+- [x] M3 History: wear logs, history cards, outfit photo upload, segmentation, matching, confirm, insights. Accept: wear counts change only after confirm, exactly once per garment, original deleted by default.
+- [x] M4 Review: photo and link input, SSRF-safe fetch, similar, works with, new outfit count, 48-hour save, waiting list, follow-up. Accept: demo candidate shows navy cardigan, due at T plus 48 hours, cron marks it due.
+- [x] M5 Ask, Compare, care, preferences: chat with tools and fallback, compare, nudges, color-profile flag, export, delete account, unsaved guard. Accept: chat never returns a missing id, export and delete verified.
+- [x] M6 Study layer: consent, randomization, control and treatment, events, follow-ups, admin, CSV, codebook, usability kit. Accept: 40 simulated participants balanced, CSV has no personal fields.
+- [x] M7 Hardening and deploy: rate limits, quotas, error states, accessibility, README, Dockerfile, demo polish. Accept: full e2e suite passes against a production build.
 
 ## Risks
 
