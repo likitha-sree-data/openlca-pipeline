@@ -78,16 +78,19 @@ class Package:
     def uuids(self, folder):
         return sorted(u for (f, u) in self.index if f == folder)
 
-    def get(self, folder, uuid):
+    def get(self, folder, uuid, cache=True):
         key = (folder, uuid)
-        if key not in self.cache:
-            name = self.index.get(key)
-            if name is None:
-                self.cache[key] = None
-            else:
-                data = self.zip.read(name) if self.zip else open(os.path.join(self.path, name), "rb").read()
-                self.cache[key] = ET.fromstring(data)
-        return self.cache[key]
+        if key in self.cache:
+            return self.cache[key]
+        name = self.index.get(key)
+        if name is None:
+            root = None
+        else:
+            data = self.zip.read(name) if self.zip else open(os.path.join(self.path, name), "rb").read()
+            root = ET.fromstring(data)
+        if cache:
+            self.cache[key] = root
+        return root
 
 
 def flow_info(pkg, uuid, units):

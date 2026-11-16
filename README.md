@@ -67,12 +67,21 @@ Factors keep full precision.
 ```bash
 ./olca.sh stop
 ./olca.sh copy elcd elcd_ef31                       # keep the original untouched
-./olca.sh import-method EF-v3.1_2.zip elcd_ef31     # adds the EF 3.1 method and flows
 ./olca.sh server elcd_ef31
+python3 build_ef_method.py EF-v3.1_2.zip            # adds the EF 3.1 method
 .venv/bin/python list_records.py ImpactMethod       # the import names it "Environmental Footprint"
 .venv/bin/python coverage_check.py config/elcd_ef31.json --old-method "EF 3.0 Method (adapted)"
 .venv/bin/python extract_ef.py config/elcd_ef31.json
 ```
+
+`build_ef_method.py` creates the method directly from the package instead of
+openLCA's full ILCD import: that import loads all 94,000 EF substances, which
+ran out of memory on a standard 8 GB Codespace, and some EF substance names
+exceed the 255-character limit of the upgraded 2022 ELCD database. Only
+factors for substances that already exist in the database are attached (no
+other substance can appear in an ELCD dataset); default factors only (no
+location or GLO). Everything left out is counted per category in
+`ef31_method_build.json`.
 
 The EF 3.1 factors attach to ELCD substances by matching IDs. A substance
 without a match silently counts as zero, which would understate results.
@@ -124,6 +133,7 @@ shared, but a database can be open in only one program at a time.
 | `ab_test.py` | Compares linking options for the same process and shows top contributors |
 | `check_ilcd.py` | Says whether an ILCD export is complete before importing it (`--methods-only` for method packages) |
 | `ef_factors.py` | Exports all characterization factors of an ILCD method package (deliverable A) |
+| `build_ef_method.py` | Creates the EF 3.1 method in a database from the reference package (light, no full import) |
 | `coverage_check.py` | Checks that an imported method's factors reach the database's substances |
 | `sanity_report.py` | One line per process (value, per kWh, share, linked processes) for plausibility checks |
 | `list_records.py` | Lists methods/processes with location and category, to pick UUIDs safely |

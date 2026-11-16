@@ -61,34 +61,22 @@ fi
 if [ ! -f "$MARKER" ]; then
   before=$(count_of "$ELCD_DB" impact_categories)
   ./olca.sh copy "$ELCD_DB" "$EF_DB"
-  echo "importing the EF 3.1 method (this can take 10 to 30 minutes)..."
+  echo "building the EF 3.1 method from the reference package (about 5 to 15 minutes)..."
+  mkdir -p "$OUT_DIR"
+  ./olca.sh server "$EF_DB" "$PORT" > /dev/null || die "could not open $EF_DB, see $DATA/ipc-server.log"
   set +e
-  ./olca.sh import-method "$EF_ZIP" "$EF_DB" > import_method.log 2>&1
+  $PY build_ef_method.py "$EF_ZIP" --port "$PORT" --report "$OUT_DIR/ef31_method_build.json"
   status=$?
   set -e
-  # (no "| head" here: with pipefail it would abort the script silently)
-  grep -E "RESULT|import finished|refusing|nothing was imported|upgraded" import_method.log || true
-  skipped=$(grep -c "^ERROR: Import of" import_method.log || true)
-  if [ "${skipped:-0}" -gt 0 ]; then
-    echo "note: $skipped data set(s) could not be stored and were skipped, for example"
-    echo "      substances with names longer than openLCA's 255-character limit."
-    echo "      Details in import_method_skipped.log"
-    grep -E "^ERROR: |truncation error" import_method.log > import_method_skipped.log || true
-  fi
+  ./olca.sh stop > /dev/null
   after=$(count_of "$EF_DB" impact_categories)
-  echo "impact categories: $before before, $after after the import"
+  echo "impact categories: $before before, $after after"
   if [ "$status" -ne 0 ] || [ -z "$after" ] || [ "$after" -le "${before:-0}" ]; then
     rm -rf "${DATA:?}/databases/$EF_DB"
-    if [ "$status" -eq 137 ] || ! grep -q "import finished" import_method.log; then
-      echo "free memory now (MB): $(free -m | awk '/^Mem:/ {print $7}')"
-      die "the import was killed before it finished, almost certainly out of memory.
-         Switch the Codespace to a 4-core machine (16 GB) and run this script again.
-         (exit status $status)"
-    fi
-    die "the EF 3.1 import added no impact categories. Send Claude the file import_method.log"
+    die "building the EF 3.1 method failed (exit status $status). Paste the lines above to Claude."
   fi
   touch "$MARKER"
-  rm -f import_method.log
+  rm -f "$OUT_DIR/coverage.csv"
 else
   echo "ok: $EF_DB already has the EF 3.1 method"
 fi
