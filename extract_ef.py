@@ -239,7 +239,13 @@ def usage_notes(process, ref_ex, meta):
     notes, missing = [], []
     ref_amount = abs(ref_ex.amount) if ref_ex is not None and ref_ex.amount else 1.0
     for e in process.exchanges or []:
-        if e is ref_ex or not e.is_input or e.default_provider is not None or e.flow is None:
+        if e is ref_ex or not e.is_input or e.flow is None:
+            continue
+        # In aggregated (LCI result) datasets, inputs linked to Dummy_ processes
+        # are bookkeeping flows by design; in unit processes they are real
+        # inputs (e.g. electricity) whose burden is then missing.
+        dummy = e.default_provider is not None and (e.default_provider.name or "").startswith("Dummy")
+        if e.default_provider is not None and not (dummy and enum_str(process.process_type) != "LCI_RESULT"):
             continue
         if enum_str(e.flow.flow_type) != "PRODUCT_FLOW" or not e.amount:
             continue
@@ -487,6 +493,20 @@ def method_info(method, client):
     }
 
 
+ZERO_NOTE = ("All impact values are 0: the dataset's inventory has no characterized "
+             "emissions, usually because its inputs (e.g. electricity) are not included. "
+             "Do not use as zero impact; add the inputs' impacts yourself")
+
+
+def add_zero_result_note(rec):
+    """Flag datasets whose every impact value is 0 (works on stored results)."""
+    m = rec["metadata"]
+    values = [iv["impact_value"] for iv in rec["impacts"]]
+    notes = m.get("usage_notes") or ""
+    if values and all(v == 0 for v in values) and ZERO_NOTE not in notes:
+        m["usage_notes"] = (notes + " || " if notes else "") + ZERO_NOTE
+
+
 def export(cfg, out_dir, minfo):
     records = read_jsonl(os.path.join(out_dir, "processes.jsonl"))
     # keep the latest record per process (a --retry-failed run may add one)
@@ -494,6 +514,8 @@ def export(cfg, out_dir, minfo):
     for r in records:
         latest[r["process_id"]] = r
     records = list(latest.values())
+    for r in records:
+        add_zero_result_note(r)
     digits = cfg.get("csv_significant_figures", 6)
     db = cfg["database_label"]
 
