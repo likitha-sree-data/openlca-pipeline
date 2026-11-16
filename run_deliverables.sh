@@ -79,6 +79,12 @@ if [ ! -f "$MARKER" ]; then
   echo "impact categories: $before before, $after after the import"
   if [ "$status" -ne 0 ] || [ -z "$after" ] || [ "$after" -le "${before:-0}" ]; then
     rm -rf "${DATA:?}/databases/$EF_DB"
+    if [ "$status" -eq 137 ] || ! grep -q "import finished" import_method.log; then
+      echo "free memory now (MB): $(free -m | awk '/^Mem:/ {print $7}')"
+      die "the import was killed before it finished, almost certainly out of memory.
+         Switch the Codespace to a 4-core machine (16 GB) and run this script again.
+         (exit status $status)"
+    fi
     die "the EF 3.1 import added no impact categories. Send Claude the file import_method.log"
   fi
   touch "$MARKER"
