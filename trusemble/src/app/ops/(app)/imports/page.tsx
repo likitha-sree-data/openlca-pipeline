@@ -16,8 +16,8 @@ export default function ImportsPage() {
     `SELECT i.id, i.filename, i.format, i.sheets, i.entity, i.result, i.problems, i.status, u.name by, i.created_at FROM imports i LEFT JOIN users u ON u.id = i.user_id ORDER BY i.id DESC LIMIT 100`,
   );
   return (
-    <OpsPage section="Imports">
-      <PageHead title="Imports">Bring in a spreadsheet of organizations, contacts, requests or projects. Rows already on file are matched and updated, never duplicated.</PageHead>
+    <OpsPage section="Check data">
+      <PageHead title="Import a file">Bring in a spreadsheet of groups, contacts, requests or projects. Anything already on file is updated, never added twice.</PageHead>
       <div className="stack" style={{ marginTop: 18 }}>
         <section className="card" style={{ marginTop: 0 }}><h2 style={{ fontSize: 18 }}>Upload a spreadsheet</h2><p className="card-sub" style={{ marginBottom: 14 }}>Nothing is saved until you review the rows and press apply on the next screen.</p><UploadForm /></section>
         <section className="card" style={{ marginTop: 0 }}>
@@ -26,7 +26,7 @@ export default function ImportsPage() {
             <li>A CSV or Excel (.xlsx) file up to 10 MB, one row per record. Workbooks with several sheets are fine.</li>
             <li>Any column layout. You match each column to a field (name, county, email, amount and so on) before anything is saved.</li>
             <li>Known layouts fill in on their own: TruSemble Followups (fups.xlsx).</li>
-            <li>You see every new record and every change before you apply it. Imported records are marked unverified until someone checks them. A value that disagrees with a checked record becomes a data quality issue instead of an overwrite.</li>
+            <li>You see every new record and every change before you apply it. Imported records start as "not yet checked" until a person checks them. A value that disagrees with something already checked is flagged as a problem instead of replacing it.</li>
           </ul>
         </section>
       </div>

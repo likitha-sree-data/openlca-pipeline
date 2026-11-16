@@ -9,7 +9,7 @@ import { categoriesOpts } from '@/lib/util-opts';
 const FAQ = [
   ['Who is TruSemble for?', 'Funders who want to back wildfire work that is ready, the communities and districts doing that work, and the insurers, utilities, agencies and investors who need to know where money has and has not gone.'],
   ['Where does the record come from?', 'Public sources only: USAspending, FEMA Hazard Mitigation Assistance and the National Risk Index, Grants.gov, Oregon Department of Forestry award lists and county rosters. Every row links back to its source.'],
-  ['Is every record checked?', 'Not yet. Records are marked unverified until the TruSemble team checks them against the source, starting with Deschutes County, Oregon.'],
+  ['Is every record checked?', 'Not yet. Every record says "not yet checked" until the TruSemble team compares it with its source, starting with Deschutes County, Oregon.'],
   ['How does TruSemble make money?', 'A monthly brief and data licenses for funders, insurers, utilities and agencies, and support for funders placing money with projects.'],
   ['Who decides when an introduction is made?', 'Both sides. TruSemble introduces a project to a funder or a crew only after each says yes.'],
 ];
@@ -35,7 +35,7 @@ export default function Home() {
       <section className="container" aria-label="Live map" style={{ paddingBottom: 12 }}>
         <PublicMap variant="hero" categories={categoriesOpts} stages={PROJECT_STAGES.map((s) => [s[0], s[1]] as [string, string])} options={opts} counts={counts} initial={{ layers: ['projects', 'gap'] }} pageSize={50} />
         <p className="small muted" style={{ marginTop: 16, maxWidth: 560 }}>
-          Live map from public federal, state and county records. Red counties are in the top quarter for FEMA wildfire risk with no county-level wildfire award on record. Records are unverified until the TruSemble team checks them. No contact details are shown.
+          Live map from public federal, state and county records. Red counties are in the top quarter for FEMA wildfire risk with no county-level wildfire award on record. Records say "not yet checked" until the TruSemble team checks them. No contact details are shown.
         </p>
       </section>
 

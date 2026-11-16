@@ -32,7 +32,7 @@ export default async function SourcesPage({ searchParams }: { searchParams: Prom
   const fetched = scalar<number>("SELECT COUNT(*) FROM sources WHERE last_fetched_at IS NOT NULL");
   return (
     <OpsPage section="Sources">
-      <PageHead title="Sources">Every source the record cites, how many rows it feeds, when it was last fetched, and whether the pilot has assessed it. Grows with every fetcher run</PageHead>
+      <PageHead title="Sources">Every source the record cites, how many rows it feeds, when it was last fetched, and whether the team has looked at it. Grows every time data is refreshed</PageHead>
       <AutoForm className="toolbar">
         <input name="q" defaultValue={sp.q} className="input search" placeholder="Search name or URL" aria-label="Search" />
         <select name="kind" className="select" defaultValue={sp.kind ?? ''} aria-label="Kind"><option value="">Any kind</option>{SOURCE_KINDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
@@ -41,7 +41,7 @@ export default async function SourcesPage({ searchParams }: { searchParams: Prom
       </AutoForm>
       <p className="row" style={{ gap: 18, margin: '4px 0 14px' }}><span><b className="num">{fmtInt(total)}</b> sources</span><Split v={split.v} u={split.u} d={split.d} /><span className="small muted">{feeding} feed at least one row · {fetched} fetched</span></p>
       <div className="table-wrap"><table className="t">
-        <thead><tr><th>Source</th><th>Kind</th><th>Rows fed</th><th>Last fetched</th><th>Assessed</th></tr></thead>
+        <thead><tr><th>Source</th><th>Kind</th><th>Rows fed</th><th>Last fetched</th><th>Reviewed</th></tr></thead>
         <tbody>
           {rows.map((s) => (
             <tr key={s.id}>
@@ -51,7 +51,7 @@ export default async function SourcesPage({ searchParams }: { searchParams: Prom
               <td>{label(SOURCE_KINDS, s.kind)}</td>
               <td className="small">{feedTotal({ organizations: s.orgs, projects: s.projects, programs: s.programs, awards: s.awards }) === 0 ? <span className="muted">0</span> : <><b className="num">{fmtInt(feedTotal({ organizations: s.orgs, projects: s.projects, programs: s.programs, awards: s.awards }))}</b><span className="sub">{feedParts({ organizations: s.orgs, projects: s.projects, programs: s.programs, awards: s.awards }).join(', ')}</span></>}</td>
               <td className="small nowrap">{s.last_fetched_at ? relativeDays(s.last_fetched_at) : <span className="muted">never</span>}{s.runs ? <span className="sub">{s.runs} run{s.runs === 1 ? '' : 's'}{s.last_status === 'error' ? ' · last failed' : ''}</span> : null}</td>
-              <td><form action={toggleAssessedAction.bind(null, s.id)}><button className={`pill ${s.assessed ? 'ok' : 'quiet'}`} style={{ cursor: 'pointer' }} aria-pressed={!!s.assessed}>{s.assessed ? 'Assessed' : 'Not assessed'}</button></form></td>
+              <td><form action={toggleAssessedAction.bind(null, s.id)}><button className={`pill ${s.assessed ? 'ok' : 'quiet'}`} style={{ cursor: 'pointer' }} aria-pressed={!!s.assessed}>{s.assessed ? 'Reviewed' : 'Not reviewed'}</button></form></td>
             </tr>
           ))}
         </tbody>

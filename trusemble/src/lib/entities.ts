@@ -84,14 +84,14 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
       { name: 'state', label: 'State', type: 'select', options: STATE_OPTS },
       { name: 'lat', label: 'Latitude', type: 'number', group: 'Location' },
       { name: 'lng', label: 'Longitude', type: 'number', group: 'Location' },
-      { name: 'location_precision', label: 'Location precision', type: 'select', options: PRECISIONS, group: 'Location' },
-      { name: 'published', label: 'Show on the public map', type: 'checkbox', group: 'Publication' },
+      { name: 'location_precision', label: 'How exact the location is', type: 'select', options: PRECISIONS, group: 'Location' },
+      { name: 'published', label: 'Show on the website map', type: 'checkbox', group: 'Publication' },
       { name: 'notes', label: 'Internal notes', type: 'textarea', wide: true, group: 'Publication' },
     ],
     filters: [
       { name: 'type', label: 'Type', options: ORG_TYPES, clause: (v) => ({ sql: 'o.type = ?', params: [v] }) },
       { name: 'county', label: 'County', options: [], clause: (v) => ({ sql: 'o.county = ?', params: [v] }) },
-      { name: 'public', label: 'Public', options: [['yes', 'Published'], ['no', 'Not published']], clause: (v) => ({ sql: 'o.published = ?', params: [v === 'yes' ? 1 : 0] }) },
+      { name: 'public', label: 'On the website', options: [['yes', 'Shown'], ['no', 'Hidden']], clause: (v) => ({ sql: 'o.published = ?', params: [v === 'yes' ? 1 : 0] }) },
       archivedFilter('o'),
     ],
   },
@@ -112,20 +112,20 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
       { name: 'state', label: 'State', type: 'select', options: STATE_OPTS, group: 'Place' },
       { name: 'lat', label: 'Latitude', type: 'number', group: 'Place' },
       { name: 'lng', label: 'Longitude', type: 'number', group: 'Place' },
-      { name: 'location_precision', label: 'Location precision', type: 'select', options: PRECISIONS, group: 'Place' },
+      { name: 'location_precision', label: 'How exact the location is', type: 'select', options: PRECISIONS, group: 'Place' },
       { name: 'needs', label: 'Needs', type: 'text', help: 'Funding, crew, planning help', group: 'Money' },
       { name: 'requested_amount', label: 'Amount requested ($)', type: 'number', group: 'Money' },
       { name: 'budget_amount', label: 'Budget ($)', type: 'number', group: 'Money' },
       { name: 'acres', label: 'Acres', type: 'number', group: 'Money' },
       { name: 'source_url', label: 'Source link', type: 'url', group: 'Publication', wide: true },
-      { name: 'published', label: 'Publish on the public map and project page', type: 'checkbox', group: 'Publication' },
+      { name: 'published', label: 'Show on the website (map and project page)', type: 'checkbox', group: 'Publication' },
       { name: 'notes', label: 'Internal notes', type: 'textarea', wide: true, group: 'Publication' },
     ],
     filters: [
       { name: 'stage', label: 'Stage', options: PROJECT_STAGES, clause: (v) => ({ sql: 'p.stage = ?', params: [v] }) },
       {
-        name: 'publication', label: 'Publication',
-        options: [['published', 'Published'], ['private', 'Private'], ['not_on_map', 'Published, not on the map']],
+        name: 'publication', label: 'On the website',
+        options: [['published', 'Published'], ['private', 'Private'], ['not_on_map', 'Shown, but not on the map']],
         clause: (v) => v === 'published' ? { sql: 'p.published = 1', params: [] } : v === 'private' ? { sql: 'p.published = 0', params: [] } : v === 'not_on_map' ? { sql: 'p.published = 1 AND p.lat IS NULL', params: [] } : null,
       },
       { name: 'county', label: 'County', options: [], clause: (v) => ({ sql: 'p.county = ?', params: [v] }) },
@@ -143,7 +143,7 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
       { name: 'name', label: 'Name', type: 'text', required: true },
       { name: 'title', label: 'Title', type: 'text' },
       { name: 'org_id', label: 'Organization', type: 'ref', ref: 'organizations' },
-      { name: 'decision_role', label: 'Decision role', type: 'select', options: DECISION_ROLES },
+      { name: 'decision_role', label: 'Role in decisions', type: 'select', options: DECISION_ROLES },
       { name: 'email', label: 'Email', type: 'email' },
       { name: 'phone', label: 'Phone', type: 'tel' },
       { name: 'owner_id', label: 'Owner', type: 'ref', ref: 'users' },
@@ -151,9 +151,9 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
       { name: 'notes', label: 'Notes', type: 'textarea', wide: true },
     ],
     filters: [
-      { name: 'role', label: 'Decision role', options: DECISION_ROLES, clause: (v) => ({ sql: 'c.decision_role = ?', params: [v] }) },
+      { name: 'role', label: 'Role', options: DECISION_ROLES, clause: (v) => ({ sql: 'c.decision_role = ?', params: [v] }) },
       {
-        name: 'reach', label: 'Reach',
+        name: 'reach', label: 'Contact details',
         options: [['email', 'Has email'], ['phone', 'Has phone'], ['none', 'No details']],
         clause: (v) => v === 'email' ? { sql: "c.email IS NOT NULL AND c.email != ''", params: [] } : v === 'phone' ? { sql: "c.phone IS NOT NULL AND c.phone != ''", params: [] } : v === 'none' ? { sql: "(c.email IS NULL OR c.email = '') AND (c.phone IS NULL OR c.phone = '')", params: [] } : null,
       },
@@ -188,15 +188,15 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
       { name: 'eligibility', label: 'Who can apply', type: 'textarea', wide: true, group: 'Reach' },
       { name: 'url', label: 'Program page', type: 'url', group: 'Reach', wide: true },
       { name: 'contact_id', label: 'Who to call', type: 'ref', ref: 'contacts', group: 'Reach' },
-      { name: 'published', label: 'Show on the public funding page', type: 'checkbox', group: 'Reach' },
+      { name: 'published', label: 'Show on the website funding page', type: 'checkbox', group: 'Reach' },
       { name: 'notes', label: 'Internal notes', type: 'textarea', wide: true, group: 'Reach' },
     ],
     filters: [
-      { name: 'instrument', label: 'Instrument', options: PROGRAM_TYPES, clause: (v) => ({ sql: 'pr.type = ?', params: [v] }) },
+      { name: 'instrument', label: 'Kind', options: PROGRAM_TYPES, clause: (v) => ({ sql: 'pr.type = ?', params: [v] }) },
       { name: 'pays_for', label: 'Pays for', options: [], clause: (v) => ({ sql: 'lower(pr.focus) LIKE ?', params: [`%${v.toLowerCase()}%`] }) },
       { name: 'available_in', label: 'Available in', options: [], clause: (v) => ({ sql: "(pr.scope = 'national' OR pr.state = ?)", params: [v] }) },
-      { name: 'reach', label: 'Reach', options: PROGRAM_SCOPES, clause: (v) => ({ sql: 'pr.scope = ?', params: [v] }) },
-      { name: 'award_kind', label: 'Award kind', options: [['has', 'Has awards on record'], ['none', 'No awards on record']], clause: (v) => v === 'has' ? { sql: 'EXISTS (SELECT 1 FROM awards a WHERE a.program_id = pr.id)', params: [] } : v === 'none' ? { sql: 'NOT EXISTS (SELECT 1 FROM awards a WHERE a.program_id = pr.id)', params: [] } : null },
+      { name: 'reach', label: 'Where', options: PROGRAM_SCOPES, clause: (v) => ({ sql: 'pr.scope = ?', params: [v] }) },
+      { name: 'award_kind', label: 'Awards', options: [['has', 'Has awards on record'], ['none', 'No awards on record']], clause: (v) => v === 'has' ? { sql: 'EXISTS (SELECT 1 FROM awards a WHERE a.program_id = pr.id)', params: [] } : v === 'none' ? { sql: 'NOT EXISTS (SELECT 1 FROM awards a WHERE a.program_id = pr.id)', params: [] } : null },
       archivedFilter('pr'),
     ],
   },
@@ -219,8 +219,8 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
       { name: 'contact_id', label: 'Contact', type: 'ref', ref: 'contacts' },
       { name: 'project_id', label: 'Project', type: 'ref', ref: 'projects' },
       { name: 'owner_id', label: 'Owner', type: 'ref', ref: 'users', group: 'Next step' },
-      { name: 'next_action_date', label: 'Next action date', type: 'date', group: 'Next step' },
-      { name: 'next_action', label: 'Next action', type: 'textarea', wide: true, group: 'Next step' },
+      { name: 'next_action_date', label: 'Next step date', type: 'date', group: 'Next step' },
+      { name: 'next_action', label: 'What happens next', type: 'textarea', wide: true, group: 'Next step' },
       { name: 'message', label: 'Message or notes', type: 'textarea', wide: true, group: 'Next step' },
     ],
     filters: [
@@ -235,22 +235,23 @@ export function entityBySlug(slug: string): EntityCfg | null {
   return Object.values(ENTITIES).find((e) => e.slug === slug) ?? null;
 }
 
-export const OPS_NAV = [
-  { href: '/ops', key: 'overview', label: 'Overview' },
-  { href: '/ops/pilot', key: 'pilot', label: 'Pilot' },
-  { href: '/ops/requests', key: 'requests', label: 'Requests' },
-  { href: '/ops/projects', key: 'projects', label: 'Projects' },
-  { href: '/ops/matches', key: 'matches', label: 'Matches' },
-  null,
-  { href: '/ops/organizations', key: 'organizations', label: 'Organizations' },
-  { href: '/ops/contacts', key: 'contacts', label: 'Contacts' },
-  { href: '/ops/funding', key: 'funding', label: 'Funding' },
-  null,
-  { href: '/ops/map', key: 'map', label: 'Map' },
-  { href: '/ops/sources', key: 'sources', label: 'Sources' },
-  { href: '/ops/imports', key: 'imports', label: 'Imports' },
-  { href: '/ops/data-quality', key: 'data-quality', label: 'Data quality' },
-  { href: '/ops/calculator', key: 'calculator', label: 'Calculator' },
-] as const;
+/** The team tool has five places. Each has a few tabs; every page belongs to exactly one place. */
+export type OpsGroup = { key: string; label: string; href: string; tabs: { href: string; label: string }[] };
+export const OPS_GROUPS: OpsGroup[] = [
+  { key: 'today', label: 'Today', href: '/ops', tabs: [{ href: '/ops', label: 'Today' }, { href: '/ops/pilot', label: 'Pilot goals' }] },
+  { key: 'people', label: 'People', href: '/ops/requests', tabs: [{ href: '/ops/requests', label: 'Requests' }, { href: '/ops/contacts', label: 'Contacts' }, { href: '/ops/matches', label: 'Matches' }] },
+  { key: 'projects', label: 'Projects and funding', href: '/ops/projects', tabs: [{ href: '/ops/projects', label: 'Projects' }, { href: '/ops/organizations', label: 'Organizations' }, { href: '/ops/funding', label: 'Funding programs' }] },
+  { key: 'check', label: 'Check data', href: '/ops/check', tabs: [{ href: '/ops/check', label: 'To check' }, { href: '/ops/data-quality', label: 'Problems' }, { href: '/ops/imports', label: 'Import a file' }, { href: '/ops/sources', label: 'Sources' }, { href: '/ops/map', label: 'Map' }] },
+  { key: 'settings', label: 'Settings', href: '/ops/settings', tabs: [{ href: '/ops/settings', label: 'Alerts' }, { href: '/ops/calculator', label: 'Calculator' }] },
+];
+
+export function groupFor(path: string): OpsGroup | null {
+  if (path === '/ops') return OPS_GROUPS[0];
+  let best: { g: OpsGroup; len: number } | null = null;
+  for (const g of OPS_GROUPS) for (const t of g.tabs) {
+    if (t.href !== '/ops' && (path === t.href || path.startsWith(t.href + '/')) && (!best || t.href.length > best.len)) best = { g, len: t.href.length };
+  }
+  return best?.g ?? null;
+}
 
 export { yesNo };

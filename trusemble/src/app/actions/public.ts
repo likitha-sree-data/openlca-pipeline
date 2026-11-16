@@ -1,6 +1,8 @@
 'use server';
 
+import { after } from 'next/server';
 import { allow } from '@/lib/rate-limit';
+import { notifyNewRequest } from '@/lib/notify-requests';
 import { callerKey } from '@/lib/http';
 import { contact, fieldErrors, funding, intro, submit } from '@/lib/public-validation';
 import {
@@ -35,6 +37,7 @@ export async function submitFundingRequest(_prev: FormState, form: FormData): Pr
       needs: form.getAll('needs').map(String).filter((n) => ['Funding', 'A crew', 'Planning help', 'A partner'].includes(n)),
       amount: d.amount, homes: d.homes, timeline: d.timeline,
     });
+    after(() => notifyNewRequest(ref));
     return { ok: true, ref };
   } catch {
     return { error: 'We could not save your request. Please try again.' };
@@ -49,6 +52,7 @@ export async function submitProject(_prev: FormState, form: FormData): Promise<F
   const d = p.data;
   try {
     const { ref } = createProjectSubmission({ person: { name: d.name, email: d.email, phone: d.phone, org: d.org, role: d.role }, projectName: d.projectName, description: d.description, state: d.state, county: d.county, category: d.category, sourceUrl: d.sourceUrl });
+    after(() => notifyNewRequest(ref));
     return { ok: true, ref };
   } catch {
     return { error: 'We could not save your project. Please try again.' };
@@ -63,6 +67,7 @@ export async function submitContact(_prev: FormState, form: FormData): Promise<F
   const d = p.data;
   try {
     const { ref } = createInquiry({ person: { name: d.name, email: d.email, phone: d.phone, org: d.org, role: d.role }, topic: d.topic, message: d.message });
+    after(() => notifyNewRequest(ref));
     return { ok: true, ref };
   } catch {
     return { error: 'We could not send your message. Please try again.' };
@@ -77,6 +82,7 @@ export async function submitIntroduction(_prev: FormState, form: FormData): Prom
   const d = p.data;
   try {
     const { ref } = createIntroductionRequest({ person: { name: d.name, email: d.email, phone: d.phone, org: d.org, role: d.role }, projectId: Number(d.projectId), side: d.side, message: d.message });
+    after(() => notifyNewRequest(ref));
     return { ok: true, ref };
   } catch {
     return { error: 'We could not send your request. Please try again.' };

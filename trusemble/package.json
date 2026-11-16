@@ -17,7 +17,9 @@
     "user:create": "tsx --env-file-if-exists=.env.local scripts/create-user.ts",
     "ingest": "tsx --env-file-if-exists=.env.local scripts/ingest.ts",
     "smoke": "tsx scripts/smoke.ts",
-    "test:e2e": "node scripts/e2e.cjs"
+    "test:e2e": "node scripts/e2e.cjs",
+    "refresh": "tsx --env-file-if-exists=.env.local scripts/refresh.ts",
+    "summary": "tsx --env-file-if-exists=.env.local scripts/weekly-summary.ts"
   },
   "dependencies": {
     "exceljs": "^4.4.0",

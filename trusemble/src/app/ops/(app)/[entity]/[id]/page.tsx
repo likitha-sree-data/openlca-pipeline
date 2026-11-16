@@ -56,7 +56,7 @@ export default async function EntityDetail({ params, searchParams }: { params: P
             {cfg.key === 'requests' && <><span className="muted">{String(row.ref)}</span><StatusPill status={String(row.status)} /><Prio p={row.priority as string | null} /></>}
             <VerifPill v={String(row.verification)} />
             {archived && <span className="pill bad">Archived</span>}
-            {publicHref && <Link className="link small" href={publicHref}>View public page</Link>}
+            {publicHref && <Link className="link small" href={publicHref}>See it on the website</Link>}
           </p>
         </div>
         <form action={archiveAction.bind(null, cfg.slug, rid, !archived)}><button className="btn sm">{archived ? 'Restore' : 'Archive'}</button></form>
@@ -70,15 +70,15 @@ export default async function EntityDetail({ params, searchParams }: { params: P
         <div className="stack">
           {cfg.verifiable && (
             <section className="card" style={{ marginTop: 0 }} aria-labelledby="ver">
-              <h2 id="ver" style={{ fontSize: 16 }}>Verification</h2>
+              <h2 id="ver" style={{ fontSize: 16 }}>Has a person checked it?</h2>
               {row.verification === 'verified' ? (
                 <>
                   <p className="small" style={{ margin: '8px 0' }}>Checked against its source{verifier ? ` by ${verifier}` : ''}{row.verified_at ? ` on ${fmtDate(String(row.verified_at))}` : ''}.</p>
-                  <form action={unverifyAction.bind(null, cfg.slug, rid)}><button className="btn sm">Remove verification</button></form>
+                  <form action={unverifyAction.bind(null, cfg.slug, rid)}><button className="btn sm">Mark as not checked</button></form>
                 </>
               ) : (
                 <form action={verifyAction.bind(null, cfg.slug, rid)} className="stack" style={{ marginTop: 8 }}>
-                  <p className="small muted">{row.verification === 'demo' ? 'Demo rows are generated. Verify only after replacing them with a real record.' : 'Open the source, compare, then mark it checked.'}</p>
+                  <p className="small muted">{row.verification === 'demo' ? 'Sample records are made up. Replace them with a real record before marking anything checked.' : 'Open the source, compare, then mark it checked.'}</p>
                   <div className="field"><label htmlFor="outcome">Outcome</label><select id="outcome" name="outcome" className="select"><option value="confirmed">Matches the source</option><option value="corrected">Corrected from the source</option></select></div>
                   <div className="field"><label htmlFor="note">Note (optional)</label><input id="note" name="note" className="input" maxLength={300} /></div>
                   <button className="btn primary sm">Mark as checked</button>
@@ -89,7 +89,7 @@ export default async function EntityDetail({ params, searchParams }: { params: P
           )}
           {(cfg.key === 'requests' || cfg.key === 'projects') && (
             <section className="card" style={{ marginTop: 0 }}>
-              <h2 style={{ fontSize: 16 }}>{cfg.key === 'requests' ? 'Move to' : 'Stage'}</h2>
+              <h2 style={{ fontSize: 16 }}>{cfg.key === 'requests' ? 'Where it stands' : 'Stage'}</h2>
               <form action={moveAction.bind(null, cfg.slug, rid)} className="row" style={{ marginTop: 10 }}>
                 <select name="to" className="select" style={{ flex: 1 }} defaultValue={String(row[cfg.key === 'requests' ? 'status' : 'stage'])} aria-label="Move to">
                   {(cfg.key === 'requests' ? REQUEST_STATUSES : PROJECT_STAGES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}

@@ -1,107 +1,105 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { CheckCircle2 } from 'lucide-react';
 import { OpsPage } from '@/components/ops/Shell';
-import { ArrowLink, PageHead, SplitOf, StatusPill, VerifPill } from '@/components/ops/ui';
+import { StatusPill } from '@/components/ops/ui';
+import { requireUser } from '@/lib/auth';
+import { needsYou, checkedShare } from '@/lib/today';
 import { overview } from '@/lib/ops-stats';
-import { fmtDate, fmtInt, fmtRange, todayIso } from '@/lib/format';
-import { label, PROGRAM_TYPES, REQUEST_KINDS } from '@/lib/constants';
+import { checkedByUserToday } from '@/lib/check';
+import { fmtDate, fmtInt, relativeDays } from '@/lib/format';
+import { label, REQUEST_KINDS } from '@/lib/constants';
 
-export const metadata: Metadata = { title: 'Overview' };
+export const metadata: Metadata = { title: 'Today' };
 
-export default function Overview() {
+type Task = { n: number; text: string; cta: string; href: string; tone?: 'warn' };
+
+export default async function Today() {
+  const user = await requireUser();
+  const n = needsYou();
   const o = overview();
-  const c = o.cards;
-  const today = todayIso();
-  const cards: [string, React.ReactNode, React.ReactNode, string, boolean?][] = [
-    ['Open requests', c.openRequests.total, <SplitOf key="a" s={c.openRequests} />, 'Requests of any kind not yet closed'],
-    ['Projects', c.projects.total, <SplitOf key="b" s={c.projects} />, 'All projects, any stage or publication status'],
-    ['Organizations', c.organizations.total, <SplitOf key="c" s={c.organizations} />, 'All organizations, any type or publication status'],
-    ['Contacts', c.contacts.total, <SplitOf key="d" s={c.contacts} />, 'All contacts, private to operators'],
-    ['Deadlines in 90 days', c.deadlines.total, <SplitOf key="e" s={c.deadlines} />, 'Funding programs with a deadline from today through the next 90 days'],
-    ['Open verification issues', c.issues, null, 'Data quality issues still open, on any record'],
+  const share = checkedShare();
+  const pct = share.total ? Math.round((share.checked / share.total) * 100) : 0;
+
+  const candidates: Task[] = [
+    { n: n.newFromWebsiteTotal, text: n.newFromWebsiteTotal === 1 ? 'new request from the website needs a reply' : 'new requests from the website need a reply', cta: 'Open them', href: '/ops/requests?tab=new', tone: 'warn' },
+    { n: n.overdue, text: n.overdue === 1 ? 'follow-up is overdue' : 'follow-ups are overdue', cta: 'See overdue', href: '/ops/requests', tone: 'warn' },
+    { n: n.noNextStep, text: n.noNextStep === 1 ? 'request has no next step' : 'requests have no next step', cta: 'Give each an owner and a date', href: '/ops/requests?needs=schedule' },
+    { n: n.suggestions, text: n.suggestions === 1 ? 'suggested match is waiting for a yes or no' : 'suggested matches are waiting for a yes or no', cta: 'Review matches', href: '/ops/matches' },
+    { n: n.toCheck, text: n.toCheck === 1 ? 'record is waiting to be checked' : 'records are waiting to be checked', cta: 'Start checking', href: '/ops/check' },
+    { n: n.problems, text: n.problems === 1 ? 'data problem to look at' : 'data problems to look at', cta: 'Look at them', href: '/ops/data-quality' },
   ];
+  const tasks = candidates.filter((t) => t.n > 0);
+
   return (
-    <OpsPage section="Overview">
-      <PageHead title="Overview">Follow-ups, waiting requests and funding deadlines. Every count shows its verified, unverified and demo split</PageHead>
-      <div className="statrow" role="list">
-        {cards.map(([k, n, split, d]) => (
-          <div className="s" role="listitem" key={k}>
-            <div className="k">{k}</div>
-            <div className="n">{fmtInt(Number(n))}</div>
-            {split}
-            {k === 'Open verification issues' && <div className="d">Issues sit on records; they carry no label</div>}
-            <div className="d">{d}</div>
-          </div>
-        ))}
-      </div>
+    <OpsPage section="Today">
+      <h1>Hello, {user.name.split(' ')[0]}</h1>
+      <p className="lede">Here is what needs a person today. Work from the top.</p>
 
-      <div className="stack" style={{ marginTop: 20 }}>
-        <section className="card" aria-labelledby="followups">
-          <div className="card-head"><h2 id="followups">Follow-ups due</h2><ArrowLink href="/ops/requests">All requests</ArrowLink></div>
-          <p className="card-sub">Next actions and open tasks due within 14 days or overdue</p>
-          {o.followups.noDate.total > 0 && (
-            <div className="row" style={{ justifyContent: 'space-between', margin: '18px 0 8px', gap: 24 }}>
-              <div className="row" style={{ gap: 16 }}>
-                <span className="kpi-amber" style={{ fontSize: 34, fontWeight: 700 }}>{o.followups.noDate.total}</span>
-                <div><b>Open requests with no next action date</b><div><SplitOf s={o.followups.noDate} /></div></div>
+      <section className="card" style={{ marginTop: 20 }} aria-labelledby="needs">
+        <h2 id="needs">Needs you now</h2>
+        {tasks.length === 0 ? (
+          <p className="row" style={{ marginTop: 12, gap: 10 }}><CheckCircle2 color="var(--ok)" aria-hidden /> You are all caught up. Nothing is waiting.</p>
+        ) : (
+          <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0' }}>
+            {tasks.map((t) => (
+              <li key={t.href + t.text} className="row" style={{ justifyContent: 'space-between', padding: '14px 0', borderTop: '1px solid var(--line)' }}>
+                <span style={{ fontSize: 17 }}><b className={t.tone === 'warn' ? 'kpi-amber num' : 'num'} style={{ fontSize: 24, marginRight: 10 }}>{fmtInt(t.n)}</b>{t.text}</span>
+                <Link href={t.href} className="btn sm primary">{t.cta}</Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="small muted" style={{ marginTop: 10 }}>You checked {checkedByUserToday(user.id)} {checkedByUserToday(user.id) === 1 ? 'record' : 'records'} today.</p>
+      </section>
+
+      {n.newFromWebsite.length > 0 && (
+        <section className="card" aria-labelledby="web">
+          <h2 id="web">Latest from the website</h2>
+          {n.newFromWebsite.map((r) => (
+            <div className="listrow" key={r.id} style={{ gridTemplateColumns: '1fr auto' }}>
+              <Link href={`/ops/requests/${r.id}`}><b>{r.from_name}</b><span className="meta">{label(REQUEST_KINDS, r.kind)} · {r.ref} · {relativeDays(r.received_at)}</span></Link>
+              <Link href={`/ops/requests/${r.id}`} className="btn sm">Reply</Link>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <div className="detail-grid" style={{ marginTop: 16 }}>
+        <section className="card" style={{ marginTop: 0 }} aria-labelledby="stage">
+          <h2 id="stage">Where requests stand</h2>
+          <p className="card-sub">{o.byStatus.split.total} requests in all</p>
+          <div style={{ marginTop: 10 }}>
+            {o.byStatus.rows.map((r) => (
+              <div key={r.key} className="row" style={{ justifyContent: 'space-between', padding: '7px 0' }}>
+                <StatusPill status={r.key} /><b className="num">{r.n}</b>
               </div>
-              <Link href="/ops/requests?needs=schedule" className="link" style={{ color: 'var(--accent)' }}>Give each an owner and a date →</Link>
+            ))}
+          </div>
+          <p style={{ marginTop: 10 }}><Link className="link small" href="/ops/requests?view=board">See them as a board</Link></p>
+        </section>
+
+        <section className="card" style={{ marginTop: 0 }} aria-labelledby="soon">
+          <h2 id="soon">Coming up</h2>
+          {n.closing.length === 0 && n.dueSoon === 0 ? <p className="muted" style={{ marginTop: 10 }}>Nothing is due in the next week, and no funding closes this month.</p> : (
+            <div style={{ marginTop: 8 }}>
+              {n.dueSoon > 0 && <p className="small" style={{ margin: '6px 0' }}><b className="num">{n.dueSoon}</b> follow-ups due in the next 7 days. <Link className="link" href="/ops/requests">See them</Link></p>}
+              {n.closing.map((c) => (
+                <div key={c.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--line)' }}>
+                  <Link href={`/ops/funding/${c.id}`}>{c.name}</Link><span className="small muted nowrap">closes {fmtDate(c.window_end)} ({c.days} days)</span>
+                </div>
+              ))}
             </div>
           )}
-          {o.followups.due.length === 0 ? <p className="muted" style={{ margin: '14px 0 6px' }}>Nothing is due in the next 14 days. Next to plan:</p> : (
-            <div style={{ marginTop: 14 }}>{o.followups.due.map((r) => (
-              <div className="listrow" key={r.id}><span className="ref">{r.ref}</span><Link href={`/ops/requests/${r.id}`}><b>{r.from_name}</b><span className="meta">{r.next_action ?? 'Follow up'} · due {fmtDate(r.next_action_date)}</span></Link><StatusPill status={r.status} /><span className="muted">{r.owner ?? 'Unassigned'}</span></div>
-            ))}</div>
-          )}
-          {o.followups.nextToPlan.map((r) => (
-            <div className="listrow" key={r.id}>
-              <span className="ref">{r.ref}</span>
-              <Link href={`/ops/requests/${r.id}`}><b>{r.from_name}</b><span className="meta">{label(REQUEST_KINDS, r.kind)} · received {fmtDate(r.received_at)}</span></Link>
-              <StatusPill status={r.status} /><span className="muted">{r.owner ?? 'Unassigned'}</span>
-            </div>
-          ))}
-        </section>
-
-        <section className="card" aria-labelledby="bystatus">
-          <div className="card-head"><h2 id="bystatus">Requests by status</h2><ArrowLink href="/ops/requests?view=board">Open board</ArrowLink></div>
-          <p className="card-sub">All requests, closed included</p>
-          <div style={{ marginTop: 14 }}>
-            {o.byStatus.rows.map((r) => <div key={r.key} className="row" style={{ justifyContent: 'space-between', padding: '8px 0' }}><Link href={`/ops/requests?tab=${r.key === 'qualified' ? 'conversation' : r.key === 'matching' ? 'progress' : r.key === 'intro_made' ? 'intro' : r.key === 'needs_info' ? 'new' : r.key}`}>{r.label}</Link><b className="num">{r.n}</b></div>)}
-          </div>
-          <div className="row" style={{ borderTop: '1px solid var(--line)', marginTop: 12, paddingTop: 14, gap: 18 }}><b>{o.byStatus.split.total} requests</b><SplitOf s={o.byStatus.split} /></div>
-        </section>
-
-        <section className="card" aria-labelledby="deadlines">
-          <div className="card-head"><h2 id="deadlines">Upcoming deadlines</h2><ArrowLink href="/ops/funding">All programs</ArrowLink></div>
-          <p className="card-sub">Funding programs closing in the next 90 days</p>
-          {o.upcoming.length === 0 && <p className="muted" style={{ marginTop: 12 }}>No program closes in the next 90 days.</p>}
-          {o.upcoming.map((p) => (
-            <div key={p.id} className="row" style={{ padding: '14px 0', gap: 18, alignItems: 'flex-start' }}>
-              <div style={{ textAlign: 'center', minWidth: 48 }}><b className="num" style={{ fontSize: 20, display: 'block' }}>{p.days}</b><span className="small muted">days</span></div>
-              <div style={{ flex: 1 }}><Link href={`/ops/funding/${p.id}`}><b>{p.name}</b></Link><div className="small muted">{label(PROGRAM_TYPES, p.type)} · {p.run_by} · {fmtRange(p.award_min, p.award_max, p.award_text)}</div></div>
-              <VerifPill v={p.verification} />
-            </div>
-          ))}
-        </section>
-
-        <section className="card" aria-labelledby="aging">
-          <div className="card-head"><h2 id="aging">Requests aging</h2><ArrowLink href="/ops/requests?tab=new">All new</ArrowLink></div>
-          <p className="card-sub">New requests nobody has moved for more than 7 days</p>
-          <div className="row" style={{ gap: 20, margin: '12px 0' }}><span className="kpi-amber" style={{ fontSize: 34, fontWeight: 700 }}>{o.aging.split.total}</span><SplitOf s={o.aging.split} /></div>
-          {o.aging.rows.map((r) => <div className="listrow" key={r.id} style={{ gridTemplateColumns: '110px 1fr auto' }}><span className="ref">{r.ref}</span><Link href={`/ops/requests/${r.id}`}>{r.from_name}</Link><span className="muted">{r.days}d</span></div>)}
-        </section>
-
-        <section className="card" aria-labelledby="vq">
-          <div className="card-head"><h2 id="vq">Verification queue</h2><ArrowLink href="/ops/data-quality">Review</ArrowLink></div>
-          <p className="card-sub">Open data quality issues and unchecked records</p>
-          <div className="row" style={{ gap: 10, margin: '12px 0', paddingBottom: 12, borderBottom: '1px solid var(--line)' }}><b className="num" style={{ fontSize: 30 }}>{o.queue.openIssues}</b><span className="muted">open issues</span></div>
-          <p className="small"><b className="num">{fmtInt(o.queue.uncheckedTotal)}</b> records not yet checked against a source</p>
-          <div style={{ marginTop: 8 }}>
-            {Object.entries(o.queue.rows).map(([k, v]) => <div key={k} className="row" style={{ justifyContent: 'space-between', padding: '7px 0 7px 12px' }}><span>{k}</span><span><b className="num">{fmtInt(v.unchecked)}</b> <span className="muted">of {fmtInt(v.total)}</span></span></div>)}
-          </div>
         </section>
       </div>
-      <p className="tiny muted" style={{ marginTop: 14 }}>As of {fmtDate(today)}.</p>
+
+      <section className="card" aria-labelledby="health">
+        <h2 id="health">How checked is the data?</h2>
+        <p className="card-sub">{fmtInt(share.checked)} of {fmtInt(share.total)} records have been compared with their source by a person.</p>
+        <div className="meter" role="img" aria-label={`${pct} percent checked`} style={{ marginTop: 12 }}><i style={{ width: `${Math.max(pct, 1)}%` }} /></div>
+        <p style={{ marginTop: 6 }}><Link className="link small" href="/ops/check">Check some now</Link></p>
+      </section>
     </OpsPage>
   );
 }

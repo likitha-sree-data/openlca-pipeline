@@ -23,7 +23,7 @@ export default function FundPage() {
       <div className="stack">
         {rows.map((p) => (
           <article key={p.id} className="program">
-            <div className="tags"><span>{label(PROJECT_CATEGORIES, p.category)}</span><span className="u">Unverified</span></div>
+            <div className="tags"><span>{label(PROJECT_CATEGORIES, p.category)}</span><span className="u">Not yet checked</span></div>
             <h3><Link href={`/projects/${p.id}`}>{p.name}</Link></h3>
             {p.description && <p style={{ color: 'var(--ink-2)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</p>}
             <div className="foot"><span>{p.owner ? `${p.owner} · ` : ''}{p.county ?? ''}{p.state ? `, ${p.state}` : ''}{p.requested_amount ? ` · Requested ${fmtMoney(p.requested_amount)}` : ''}</span><Link className="btn" href={`/projects/${p.id}`}>Request an introduction</Link></div>

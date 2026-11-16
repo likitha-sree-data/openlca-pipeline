@@ -28,9 +28,9 @@ export default function DataPage() {
         <h2 id="counts" style={{ fontSize: 'clamp(28px,4vw,40px)', margin: '4px 0 18px' }}>Headline counts, as of {fmtDate(todayIso())}</h2>
         <div className="stat-grid">
           {stat(h.orgs, 'Organizations')}{stat(h.projects, 'Projects')}{stat(h.awards, 'Awards on record')}{stat(h.programs, 'Funding programs')}
-          {stat(h.sources, 'Sources')}{stat(h.counties, 'Counties covered')}{stat(h.verified, 'Rows verified by a person')}
+          {stat(h.sources, 'Sources')}{stat(h.counties, 'Counties covered')}{stat(h.verified, 'Records checked by a person')}
         </div>
-        <p className="small muted" style={{ marginTop: 12 }}>Counts are of published rows. Every row keeps its source and a verification label; {fmtInt(h.verified)} of them have been checked by a person against that source.</p>
+        <p className="small muted" style={{ marginTop: 12 }}>Counts are of published rows. Every record keeps its source and says whether a person has checked it. {fmtInt(h.verified)} have been checked against their source.</p>
       </section>
 
       <section style={{ marginTop: 56 }} aria-labelledby="coverage">

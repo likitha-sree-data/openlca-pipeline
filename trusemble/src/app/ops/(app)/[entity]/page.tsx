@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ entity: s
   return { title: cfg ? cfg.plural[0].toUpperCase() + cfg.plural.slice(1) : 'Not found' };
 }
 
-const TABS: [string, string, string][] = [['all', 'All', ''], ['new', 'New', 'new'], ['conversation', 'In conversation', 'qualified'], ['progress', 'In progress', 'matching'], ['intro', 'Intro made', 'intro_made'], ['closed', 'Closed', 'closed']];
+const TABS: [string, string, string][] = [['all', 'All', ''], ['new', 'New', 'new'], ['conversation', 'Talking', 'qualified'], ['progress', 'Working on it', 'matching'], ['intro', 'Introduced', 'intro_made'], ['closed', 'Closed', 'closed']];
 
 export default async function EntityList({ params, searchParams }: { params: Promise<{ entity: string }>; searchParams: Promise<SP> }) {
   const cfg = entityBySlug((await params).entity);
@@ -74,7 +74,7 @@ export default async function EntityList({ params, searchParams }: { params: Pro
         <label className="sr-only" htmlFor="q">Search</label>
         <div className="search" style={{ position: 'relative' }}><Search size={16} aria-hidden style={{ position: 'absolute', left: 14, top: 13, color: 'var(--muted)' }} /><input id="q" name="q" defaultValue={sp.q} className="input" style={{ paddingLeft: 36, width: '100%' }} placeholder={`Search ${cfg.search.map((s) => s.split('.')[1]).slice(0, 3).join(', ')}`} /></div>
         {cfg.key !== 'requests' && <div className="seg" role="group" aria-label="Verification">
-          {[['', 'All'], ['verified', 'Verified'], ['unverified', 'Unverified'], ['demo', 'Demo']].map(([v, l]) => <Link key={v} href={qs({ v: v || undefined })} className={(sp.v ?? '') === v ? 'on' : ''}>{l}</Link>)}
+          {[['', 'All'], ['verified', 'Checked'], ['unverified', 'Not yet checked'], ['demo', 'Sample']].map(([v, l]) => <Link key={v} href={qs({ v: v || undefined })} className={(sp.v ?? '') === v ? 'on' : ''}>{l}</Link>)}
         </div>}
         {cfg.filters.map((f) => {
           const opts: readonly (readonly [string, string])[] = f.options.length ? f.options : distinctOptions(cfg, f.name);
@@ -90,7 +90,7 @@ export default async function EntityList({ params, searchParams }: { params: Pro
         <noscript><button className="btn sm">Apply</button></noscript>
       </AutoForm>
 
-      <p className="row" style={{ gap: 18, margin: '4px 0 14px' }}><span><b className="num">{fmtInt(total)}</b> {cfg.plural} in this view</span><Split v={counts.verified} u={counts.unverified} d={counts.demo} />{cfg.key === 'organizations' && <span className="muted small">{fmtInt(Number(get<{ n: number }>('SELECT COUNT(*) n FROM organizations WHERE published = 1 AND archived = 0')?.n))} published on the public map</span>}</p>
+      <p className="row" style={{ gap: 18, margin: '4px 0 14px' }}><span><b className="num">{fmtInt(total)}</b> {cfg.plural} shown</span><Split v={counts.verified} u={counts.unverified} d={counts.demo} />{cfg.key === 'organizations' && <span className="muted small">{fmtInt(Number(get<{ n: number }>('SELECT COUNT(*) n FROM organizations WHERE published = 1 AND archived = 0')?.n))} shown on the website</span>}</p>
 
       {needsSchedule && <div className="alert" style={{ marginBottom: 14 }}>Giving each open request an owner and a next action date. <Link className="link" href="/ops/requests">Back to all requests</Link></div>}
 
@@ -118,11 +118,11 @@ function Table({ cfg, rows }: { cfg: EntityCfg; rows: Row[] }) {
   if (rows.length === 0) return <Empty what={cfg.plural} />;
   const link = (r: Row, text: React.ReactNode) => <Link href={`/ops/${cfg.slug}/${r.id}`}>{text}</Link>;
   const head: Record<string, string[]> = {
-    organizations: ['Name', 'Type', 'County', 'Projects', 'Status'],
-    projects: ['Project', 'Owner', 'Stage', 'County', 'Needs', 'Requested', 'On public map'],
-    contacts: ['Name', 'Organization', 'Decision role', 'Reach', 'Owner'],
-    programs: ['Program', 'Run by', 'Type', 'Deadline', 'Award size', 'Where', 'Who to call'],
-    requests: ['From', 'Kind', 'Status', 'Priority', 'Amount', 'Next action', 'Owner'],
+    organizations: ['Name', 'Kind', 'County', 'Projects', 'Checked?'],
+    projects: ['Project', 'Owner', 'Where it stands', 'County', 'Needs', 'Asking for', 'On the website'],
+    contacts: ['Name', 'Organization', 'Role', 'Contact details', 'Owner'],
+    programs: ['Program', 'Run by', 'Kind', 'Deadline', 'How much', 'Where', 'Who to call'],
+    requests: ['From', 'Kind', 'Where it stands', 'Priority', 'Amount', 'Next step', 'Owner'],
   };
   return (
     <div className="table-wrap">
@@ -139,7 +139,7 @@ function Table({ cfg, rows }: { cfg: EntityCfg; rows: Row[] }) {
                 <td className="name" style={{ minWidth: 220 }}>{link(r, r.name)}</td><td>{r.owner ?? '–'}</td>
                 <td><span className={`pill ${r.stage === 'complete' ? 'ok' : r.stage === 'seeking_funding' ? 'new' : 'info'}`}>{label(PROJECT_STAGES, String(r.stage))}</span></td>
                 <td>{r.county ?? '–'}</td><td>{r.needs ?? ''}</td><td className="right num">{r.requested_amount ? fmtMoney(Number(r.requested_amount)) : '–'}</td>
-                <td>{r.published ? (r.lat == null ? 'Published, not on map' : 'Published') : 'Private'}</td>
+                <td>{r.published ? (r.lat == null ? 'Shown, not on the map' : 'Shown') : 'Hidden'}</td>
               </>}
               {cfg.key === 'contacts' && <>
                 <td className="name">{link(r, r.name)}{r.title && <span className="sub">{r.title}</span>}{r.do_not_contact ? <span className="pill bad" style={{ marginTop: 4 }}>Do not contact</span> : null}</td>
@@ -160,7 +160,7 @@ function Table({ cfg, rows }: { cfg: EntityCfg; rows: Row[] }) {
                 <td>{label(REQUEST_KINDS, String(r.kind))}</td>
                 <td><StatusPill status={String(r.status)} />{r.substatus && <span className="sub" style={{ marginTop: 4 }}>{r.substatus}</span>}</td>
                 <td><Prio p={r.priority as string | null} /></td><td style={{ maxWidth: 140 }}>{r.amount_text ?? '–'}</td>
-                <td style={{ minWidth: 180 }}>{r.next_action ?? <span className="muted">None set</span>}{r.next_action_date && <span className="sub">{fmtDate(String(r.next_action_date))}</span>}</td>
+                <td style={{ minWidth: 180 }}>{r.next_action ?? <span className="muted">No next step</span>}{r.next_action_date && <span className="sub">{fmtDate(String(r.next_action_date))}</span>}</td>
                 <td>{r.owner ?? <span className="muted">Unassigned</span>}</td>
               </>}
             </tr>

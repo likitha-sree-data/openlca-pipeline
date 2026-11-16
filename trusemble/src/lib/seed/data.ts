@@ -121,7 +121,7 @@ export const SOURCES: SeedSource[] = [
   { slug: 'sge-poc', name: 'SGE Oregon Wildfire Opportunity Map, proof of concept (June 2026)', kind: 'website', description: 'Built by Sharing Green Economy, June 2026, from public Oregon state, federal and county sources.' },
   { slug: 'fups', name: 'TruSemble Followups (fups.xlsx)', kind: 'spreadsheet', description: "Private. TruSemble's own fundraising and client pipeline. Imported as unverified.", priv: true },
   { slug: 'kickoff', name: 'TruSemble kickoff meeting notes', kind: 'meeting', description: 'Private. Notes over the kickoff transcript.', priv: true },
-  { slug: 'program-catalog', name: 'Funding program pages as read by the pilot team', kind: 'website', description: 'Each program row links to its own page. Figures are as published; check the program page before applying.' },
+  { slug: 'program-catalog', name: 'Funding program pages (each program links to its own page)', kind: 'website', description: 'Each program row links to its own page. Figures are as published; check the program page before applying.' },
 ];
 
 const BF = ['Upper Mokelumne', 'Upper Wenatchee', 'OrCal Regional Restoration', 'Rogue Valley', 'Upper Butte Creek', 'North Feather', 'SONEC', 'Colfax', 'Butte Fire Safe', 'Plumas Community Protection', 'Yuba Aspen and Meadow', 'Yuba II', 'Yuba I', 'San Diego Canyons'];

@@ -33,7 +33,7 @@ export default async function ImportDetail({ params, searchParams }: { params: P
         <PageHead title={imp.filename}>{imp.status === 'applied' ? 'This import was applied.' : 'This import failed and nothing was saved.'}</PageHead>
         {res && <div className="tiles" style={{ margin: '18px 0' }}>{Object.entries(res).map(([k, v]) => <div className="stat" key={k}><b className="num">{v}</b><span>{k.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase())}</span></div>)}</div>}
         {probs.length > 0 && <div className="card"><h2 style={{ fontSize: 16 }}>Notes</h2><ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>{probs.map((p, i) => <li key={i} className="small">{p}</li>)}</ul></div>}
-        <p style={{ marginTop: 16 }}><Link className="btn" href="/ops/data-quality">Review data quality</Link></p>
+        <p style={{ marginTop: 16 }}><Link className="btn" href="/ops/check">Start checking the new records</Link></p>
       </OpsPage>
     );
   }
@@ -53,11 +53,11 @@ export default async function ImportDetail({ params, searchParams }: { params: P
     return (
       <OpsPage section="Imports">
         <p className="small"><Link className="link" href={`/ops/imports/${imp.id}`}>← Back to column mapping</Link></p>
-        <PageHead title={`Review ${imp.filename}`}>Nothing has been saved. Check the rows below, then apply. Imported records are marked unverified.</PageHead>
+        <PageHead title={`Review ${imp.filename}`}>Nothing has been saved yet. Look over the rows below, then apply. Imported records start as not yet checked.</PageHead>
         <div className="tiles" style={{ margin: '18px 0' }}>
           {([['New', s.new], ['Updated', s.updated], ['Unchanged', s.unchanged], ['Conflicts', s.conflict], ['Invalid', s.invalid]] as const).map(([l, n]) => <div className="stat" key={l}><b className="num">{n}</b><span>{l}</span></div>)}
         </div>
-        {s.conflict > 0 && <div className="alert" style={{ marginBottom: 14 }}>Conflicts are values that differ from a record a person already checked. They are not overwritten; each becomes an issue under Data quality.</div>}
+        {s.conflict > 0 && <div className="alert" style={{ marginBottom: 14 }}>A conflict is a value that disagrees with a record a person already checked. It is not replaced. Each one becomes a problem you can look at under Check data.</div>}
         <div className="table-wrap"><table className="t">
           <thead><tr><th>Sheet · row</th><th>Record</th><th>Action</th><th>Detail</th></tr></thead>
           <tbody>

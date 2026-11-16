@@ -18,6 +18,7 @@ import { guessEntity, guessMapping, IMPORT_FIELDS, KNOWN_LAYOUTS, type ImportEnt
 import { applyPlan, scanDuplicates } from '@/lib/import/apply';
 import { buildPlan, type Mapping } from '@/lib/import/plan';
 import { todayIso } from '@/lib/format';
+import { alertChannels, sendAlert } from '@/lib/notify';
 
 export type ActionState = { ok?: boolean; message?: string; error?: string; fieldErrors?: Record<string, string>; values?: Record<string, string> };
 
@@ -392,4 +393,27 @@ export async function pilotNotesAction(fd: FormData) {
 export async function lookupName(slug: string, id: number) {
   const cfg = ENTITIES[(entityBySlug(slug)?.key ?? 'organizations')];
   return get<{ n: string }>(`SELECT ${cfg.titleCol} n FROM ${cfg.table} WHERE id = ?`, id)?.n ?? null;
+}
+
+// ---------------------------------------------------------------- check the data
+export async function checkRecordAction(fd: FormData) {
+  const user = await requireUser();
+  const slug = String(fd.get('slug'));
+  const cfg = entityBySlug(slug);
+  const id = Number(fd.get('id'));
+  if (!cfg || !['funding', 'projects', 'organizations'].includes(slug) || !Number.isInteger(id) || !get(`SELECT 1 FROM ${cfg.table} WHERE id = ?`, id)) redirect('/ops/check');
+  markVerified(cfg, id, user.id, fd.get('outcome') === 'corrected' ? 'corrected' : 'confirmed', clean(fd.get('note')));
+  revalidatePath('/ops/check');
+  revalidatePath('/ops');
+  redirect('/ops/check');
+}
+
+// ---------------------------------------------------------------- alerts
+export async function sendTestAlertAction(_prev: ActionState, _fd: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const ch = alertChannels();
+  if (!ch.webhook && !ch.email) return { error: 'No alerts are set up yet. Follow the steps below, then try again.' };
+  const r = await sendAlert({ title: 'Test alert from TruSemble', lines: [`${user.name} sent this to check that alerts reach you.`], path: '/ops' });
+  if (r.failed.length) return { error: `Could not send by ${r.failed.join(' and ')}. Check the settings below.` };
+  return { ok: true, message: `Sent by ${r.sent.join(' and ')}.` };
 }

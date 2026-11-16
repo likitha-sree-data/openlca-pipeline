@@ -1,13 +1,13 @@
 import Link from 'next/link';
-import { REQUEST_STATUS_PILL } from '@/lib/constants';
+import { CHECK_LABEL, REQUEST_STATUS_PILL } from '@/lib/constants';
 import { fmtInt } from '@/lib/format';
 
 export function Split({ v, u, d }: { v: number; u: number; d: number }) {
   return (
     <span className="split">
-      <span><b className="num">{fmtInt(v)}</b> verified</span>
-      <span><b className="num">{fmtInt(u)}</b> unverified</span>
-      <span><b className="num">{fmtInt(d)}</b> demo</span>
+      <span><b className="num">{fmtInt(v)}</b> checked</span>
+      <span><b className="num">{fmtInt(u)}</b> not yet checked</span>
+      <span><b className="num">{fmtInt(d)}</b> sample</span>
     </span>
   );
 }
@@ -25,7 +25,7 @@ export function Prio({ p }: { p: string | null }) {
 }
 
 export function VerifPill({ v }: { v: string }) {
-  return <span className={`pill ${v === 'verified' ? 'ok' : v === 'demo' ? 'warn' : 'quiet'}`}>{v === 'verified' ? 'Verified' : v === 'demo' ? 'Demo' : 'Unverified'}</span>;
+  return <span className={`pill ${v === 'verified' ? 'ok' : v === 'demo' ? 'warn' : 'quiet'}`}>{CHECK_LABEL[v] ?? v}</span>;
 }
 
 export function PageHead({ title, children }: { title: string; children?: React.ReactNode }) {

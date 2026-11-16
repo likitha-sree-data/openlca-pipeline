@@ -314,7 +314,7 @@ export default function PublicMap(props: MapProps) {
       <div className="stage-line" aria-label="Projects by stage">
         {stageEntries.map((s) => <span key={s.k}>{s.l} <b className="num">{s.n.toLocaleString('en-US')}</b></span>)}
       </div>
-      <p className="tiny muted" style={{ padding: '0 18px 8px' }}>Unverified: from a public record, not yet checked by the TruSemble team.</p>
+      <p className="tiny muted" style={{ padding: '0 18px 8px' }}>Not yet checked: these come from public records and the TruSemble team has not checked them yet.</p>
       <div className="list-panel" tabIndex={0} aria-label="Matching projects">
         {list?.items.map((p) => (
           <a key={p.id} className="list-item" href={`/projects/${p.id}`}>

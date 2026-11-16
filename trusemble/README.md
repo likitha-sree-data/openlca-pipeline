@@ -6,7 +6,7 @@ This repository holds two apps in one Next.js project:
 | App | Where | Who |
 |---|---|---|
 | **Public app** | `/`, `/projects`, `/funding`, `/calculator`, `/data`, `/request-funding`, `/submit-project`, `/contact`, `/fund` | funders, communities, insurers, agencies |
-| **Operations app** | `/ops/*` (sign-in required) | the TruSemble team: pipeline, records, imports, verification, pilot scorecard |
+| **Team tool** | `/ops/*` (sign-in required) | the TruSemble team, in five places: **Today**, **People**, **Projects and funding**, **Check data**, **Settings** |
 
 Built from screenshots of the existing operations app and public site. See [What is and is not verified](#what-is-and-is-not-verified).
 
@@ -26,6 +26,21 @@ Add real operators with `npm run user:create -- "Full Name" email@example.org "a
 
 The seed marks all generated geography as **demo** (names start with "(Demo)"). The public site shows a banner while `PUBLIC_INCLUDE_DEMO=true`.
 After a real ingest, run `npm run ingest -- clear-demo` and set `PUBLIC_INCLUDE_DEMO=false`.
+
+## The team tool in plain terms
+
+- **Today**: what needs a person now (new website requests, overdue follow-ups, records to check), where requests stand, what closes soon, and how much of the data a person has checked. The pilot goals sit one tab over.
+- **People**: requests (table, board, triage), contacts, suggested matches.
+- **Projects and funding**: projects, organizations, funding programs.
+- **Check data**: **To check** shows one record next to where it came from, with one button for "it matches". Also problems, importing a file, sources and an all-records map.
+- **Settings**: alerts and the calculator's cost-per-acre figures.
+
+Records say **Checked by a person**, **Not yet checked** or **Sample**. There is no other jargon to learn.
+
+### Alerts and automatic upkeep
+
+- A new website request alerts the team straight away (group and project only, never contact details). Set `RESEND_API_KEY`, `NOTIFY_EMAIL_FROM`, `NOTIFY_EMAIL_TO` for email and/or `NOTIFY_WEBHOOK_URL` for Slack, Teams or Zapier. `/ops/settings` shows what is set up and sends a test.
+- `npm run summary` sends the weekly summary (run it Monday morning). `npm run refresh` brings in fresh public data and alerts the team if a source stopped working (run it nightly). Example cron: `0 3 * * * cd /app && npm run refresh`.
 
 ## Getting real data in
 
@@ -66,7 +81,7 @@ scripts/               seed, ingest, create-user, smoke, e2e
 
 ```bash
 npm run typecheck
-npm test                                        # 56 unit tests: calculator, imports, ingest, matching, visibility, sessions
+npm test                                        # 66 unit tests: calculator, imports, ingest, matching, visibility, sessions
 npm run build && npm start &
 BASE=http://localhost:3000 npm run smoke        # every route and API
 BASE=http://localhost:3000 npm run test:e2e     # real browser: forms, login, imports, mobile layout (needs Playwright)
@@ -104,7 +119,7 @@ Back up the `/data` volume (it holds the database and uploaded spreadsheets).
 
 ## What is and is not verified
 
-Verified here: typecheck, 56 unit tests, a smoke run over every route and API, and a browser run (public forms, calculator, operator login, create/edit/verify, spreadsheet import and re-import, pilot accept, phone layout, map layers drawn on a blank basemap).
+Verified here: typecheck, 66 unit tests, a smoke run over every route and API, and a browser run (public forms, calculator, operator login, create/edit/verify, spreadsheet import and re-import, pilot accept, phone layout, map layers drawn on a blank basemap).
 
 Not verified:
 - **Live public APIs.** The build sandbox could reach none of the source APIs, so the fetchers are tested against canned payloads only. Field names for NFPA, ODF, FACTS, OpenFEMA, USAspending and the National Risk Index are best-effort and logged when unmatched.

@@ -1,9 +1,16 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { groupFor } from '@/lib/entities';
 
-export function OpsNavLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+/** One of the five places. Lit up whenever you are on any of its pages. */
+export function OpsNavLink({ groupKey, href, label, children }: { groupKey: string; href: string; label: string; children: React.ReactNode }) {
   const path = usePathname();
-  const on = href === '/ops' ? path === '/ops' : path === href || path.startsWith(href + '/');
-  return <Link href={href} className="ico" aria-label={label} title={label} aria-current={on ? 'page' : undefined}>{children}</Link>;
+  const on = groupFor(path)?.key === groupKey;
+  return (
+    <Link href={href} className="ico" aria-label={label} aria-current={on ? 'page' : undefined}>
+      {children}
+      <span>{label}</span>
+    </Link>
+  );
 }

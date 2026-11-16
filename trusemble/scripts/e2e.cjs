@@ -132,12 +132,27 @@ const check = (cond, m) => (cond ? pass(m) : fail(m));
   await shot('ops-requests', false);
 
   await go('/ops');
-  check((await body()).includes('Open requests'), 'ops overview');
+  check((await body()).includes('Needs you now') && (await body()).includes('Hello, Adam'), 'Today page greets and lists what needs a person');
+  check((await page.locator('.rail a.ico').count()) === 5, 'team tool has five places');
   await shot('ops-overview');
-  for (const [p, marker] of [['/ops/pilot', 'Pilot scorecard'], ['/ops/projects', 'Every mitigation project'], ['/ops/matches', 'Suggested pairings'], ['/ops/organizations', 'Firewise sites'], ['/ops/contacts', 'People at partner organizations'], ['/ops/funding', 'Programs that pay'], ['/ops/map', 'Hollow markers'], ['/ops/sources', 'Every source'], ['/ops/imports', 'Bring in a spreadsheet'], ['/ops/data-quality', 'What needs a person'], ['/ops/calculator', 'Funding calculator'], ['/ops/requests?view=board', 'Requests'], ['/ops/projects?view=board', 'Projects'], ['/ops/requests?needs=schedule', 'Giving each open request']]) {
+  for (const [p, marker] of [['/ops/pilot', 'Pilot scorecard'], ['/ops/projects', 'Every mitigation project'], ['/ops/matches', 'Suggested pairings'], ['/ops/organizations', 'Firewise sites'], ['/ops/contacts', 'People at partner organizations'], ['/ops/funding', 'Programs that pay'], ['/ops/map', 'Hollow markers'], ['/ops/sources', 'Every source'], ['/ops/imports', 'Bring in a spreadsheet'], ['/ops/data-quality', 'Things only a person can sort out'], ['/ops/check', 'Check the data'], ['/ops/settings', 'Alerts'], ['/ops/calculator', 'Funding calculator'], ['/ops/requests?view=board', 'Requests'], ['/ops/projects?view=board', 'Projects'], ['/ops/requests?needs=schedule', 'Giving each open request']]) {
     const r = await go(p);
     check(r.status() === 200 && (await body()).includes(marker), `ops ${p}`);
   }
+  // check the data: one record, side by side with its source
+  await go('/ops/check');
+  const waiting = async () => Number(((await body()).match(/([\d,]+) waiting/) || [])[1].replace(/,/g, ''));
+  const w0 = await waiting();
+  check(w0 > 0 && (await body()).includes('Where it came from'), 'check screen shows a record next to its source');
+  await shot('ops-check', false);
+  await page.getByRole('button', { name: 'It matches the source' }).click();
+  await page.waitForTimeout(900);
+  check((await waiting()) === w0 - 1, 'checking a record shrinks the queue');
+  await go('/ops/settings');
+  await page.getByRole('button', { name: 'Send a test alert' }).click();
+  await page.getByText(/No alerts are set up yet/).waitFor({ timeout: 5000 });
+  check(true, 'alerts page explains what is missing');
+  await go('/ops'); await shot('ops-today');
   await go('/ops/pilot'); await shot('ops-pilot');
   await go('/ops/funding'); await shot('ops-funding', false);
   await go('/ops/matches'); await shot('ops-matches', false);

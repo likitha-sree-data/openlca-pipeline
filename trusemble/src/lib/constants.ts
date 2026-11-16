@@ -89,21 +89,24 @@ export const REQUEST_KINDS: Opt[] = [
 /** Overview wording. */
 export const REQUEST_STATUSES: Opt[] = [
   ['new', 'New'],
-  ['needs_info', 'Needs information'],
-  ['qualified', 'Qualified'],
-  ['matching', 'Matching'],
-  ['intro_made', 'Introduction made'],
+  ['needs_info', 'Waiting on them'],
+  ['qualified', 'Talking'],
+  ['matching', 'Working on it'],
+  ['intro_made', 'Introduced'],
   ['closed', 'Closed'],
 ];
 /** Requests page wording for the same statuses. */
 export const REQUEST_STATUS_PILL: Record<string, string> = {
   new: 'New',
-  needs_info: 'Needs info',
-  qualified: 'In conversation',
-  matching: 'In progress',
-  intro_made: 'Intro made',
+  needs_info: 'Waiting on them',
+  qualified: 'Talking',
+  matching: 'Working on it',
+  intro_made: 'Introduced',
   closed: 'Closed',
 };
+
+/** Plain words for how far a record has been checked. */
+export const CHECK_LABEL: Record<string, string> = { verified: 'Checked by a person', unverified: 'Not yet checked', demo: 'Sample' };
 
 export const PRIORITIES: Opt[] = [
   ['critical', 'Critical'],

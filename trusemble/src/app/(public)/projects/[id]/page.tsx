@@ -34,8 +34,8 @@ export default async function ProjectPage({ params }: P) {
           <h1 style={{ fontSize: 'clamp(30px,4.6vw,48px)', maxWidth: '22ch', fontWeight: 700 }}>{p.name}</h1>
           <p className="row" style={{ margin: '14px 0' }}>
             <span className={`pill ${p.stage === 'seeking_funding' ? 'ok' : 'info'}`}>{stage}</span>
-            <span className="pill quiet">{p.verification === 'verified' ? 'Verified' : p.verification === 'demo' ? 'Demo' : 'Unverified'}</span>
-            <span className="small muted">{p.verification === 'verified' ? 'Checked against its source by the TruSemble team' : 'From a public record, not yet checked by the TruSemble team'}</span>
+            <span className="pill quiet">{p.verification === 'verified' ? 'Checked by a person' : p.verification === 'demo' ? 'Sample' : 'Not yet checked'}</span>
+            <span className="small muted">{p.verification === 'verified' ? 'The TruSemble team compared this with its source' : 'From a public record. The TruSemble team has not checked it yet'}</span>
           </p>
           {p.description && <p style={{ fontSize: 18, color: 'var(--ink-2)', maxWidth: '60ch' }}>{p.description}</p>}
           {p.owner && <p className="small" style={{ marginTop: 14 }}>Run by <b>{p.owner}</b></p>}
@@ -46,7 +46,7 @@ export default async function ProjectPage({ params }: P) {
       <dl className="card stat-grid" style={{ margin: 0, gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))' }}>
         <div><dt className="small muted">Category</dt><dd style={{ margin: 0, fontWeight: 700 }}>{label(PROJECT_CATEGORIES, p.category)}</dd></div>
         <div><dt className="small muted">County</dt><dd style={{ margin: 0, fontWeight: 700 }}>{p.county ?? 'Not recorded'}{p.state ? `, ${p.state}` : ''}</dd></div>
-        <div><dt className="small muted">Location precision</dt><dd style={{ margin: 0, fontWeight: 700 }}>{label(PRECISIONS, p.location_precision) || 'Not placed'}</dd><dd className="tiny muted" style={{ margin: 0 }}>{PRECISION_NOTE[p.location_precision ?? ''] ?? ''}</dd></div>
+        <div><dt className="small muted">How exact the location is</dt><dd style={{ margin: 0, fontWeight: 700 }}>{label(PRECISIONS, p.location_precision) || 'Not placed'}</dd><dd className="tiny muted" style={{ margin: 0 }}>{PRECISION_NOTE[p.location_precision ?? ''] ?? ''}</dd></div>
         <div><dt className="small muted">Needs</dt><dd style={{ margin: 0, fontWeight: 700 }}>{p.needs ?? 'Not stated'}</dd></div>
       </dl>
 

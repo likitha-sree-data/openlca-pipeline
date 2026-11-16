@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: 'Funding programs', description: 'Sta
 function Card({ p }: { p: PublicProgram }) {
   return (
     <article className="program" aria-label={p.name}>
-      <div className="tags"><span>{label(PROGRAM_TYPES, p.type)}</span><span className="u">{p.verification === 'verified' ? 'Verified' : 'Unverified'}</span></div>
+      <div className="tags"><span>{label(PROGRAM_TYPES, p.type)}</span><span className="u">{p.verification === 'verified' ? 'Checked by a person' : 'Not yet checked'}</span></div>
       <h3>{p.name}</h3>
       <p>Run by <b>{p.run_by}</b>{p.funded_by ? <>, funded by <b>{p.funded_by}</b></> : null}</p>
       {p.focus && <p className="muted">Focus: {p.focus.split(',').map((s) => s.trim()).join(', ')}</p>}

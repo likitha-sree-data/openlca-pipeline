@@ -28,20 +28,20 @@ export default function DataQuality() {
        CASE WHEN (SELECT status FROM source_runs WHERE source_id = s.id ORDER BY id DESC LIMIT 1) = 'error' THEN 'Last run failed' ELSE 'Not fetched in 30 days' END why
      FROM sources s WHERE s.is_private = 0 AND s.last_fetched_at IS NOT NULL AND (s.last_fetched_at < strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days')
        OR (SELECT status FROM source_runs WHERE source_id = s.id ORDER BY id DESC LIMIT 1) = 'error') ORDER BY s.last_fetched_at LIMIT 100`);
-  const tiles: [string, number, boolean][] = [['Open issues', issues.length, false], ['Organizations missing details', Math.min(orgMissingN, 500), orgMissingN > 0], ['Contacts with no organization', noOrgN, noOrgN > 0], ['Projects not on the map', Math.min(offMapN, 500), offMapN > 0], ['Sources to re-check', recheck.length, recheck.length > 0]];
+  const tiles: [string, number, boolean][] = [['Problems to look at', issues.length, false], ['Groups missing details', Math.min(orgMissingN, 500), orgMissingN > 0], ['Contacts with no organization', noOrgN, noOrgN > 0], ['Projects not on the map', Math.min(offMapN, 500), offMapN > 0], ['Sources to re-check', recheck.length, recheck.length > 0]];
   return (
     <OpsPage section="Data quality">
-      <PageHead title="Data quality">What needs a person: import conflicts and possible duplicates first, then records missing what the map and the CRM need. Open a record to fix it.</PageHead>
+      <PageHead title="Problems">Things only a person can sort out: a file that disagrees with something already checked, groups that may be listed twice, and records missing what the map needs. Open a record to fix it.</PageHead>
       <div className="stat-grid" style={{ margin: '18px 0' }}>{tiles.map(([l, n, warn]) => <div className="stat" key={l}><span>{l}</span><b className={`num ${warn ? 'kpi-amber' : ''}`}>{fmtInt(n)}</b></div>)}</div>
 
       <section className="card" style={{ marginTop: 0 }} aria-labelledby="oi">
-        <div className="card-head"><h2 id="oi">Open issues <span className="muted" style={{ fontWeight: 500 }}>{issues.length}</span></h2><form action={scanDuplicatesAction}><button className="btn sm">Scan for duplicates</button></form></div>
-        <p className="small muted">An import found a value that differs from a checked record, or a row that could be one of several records. Open the record, fix it if needed, then resolve. Dismiss when the issue is not real.</p>
-        {issues.length === 0 ? <div className="empty" style={{ marginTop: 14 }}>Nothing to review. When an import disagrees with a checked record or finds a possible duplicate, it shows up here.</div> : (
+        <div className="card-head"><h2 id="oi">Problems to look at <span className="muted" style={{ fontWeight: 500 }}>{issues.length}</span></h2><form action={scanDuplicatesAction}><button className="btn sm">Scan for duplicates</button></form></div>
+        <p className="small muted">A file brought in a value that disagrees with something a person already checked, or a group that may be listed twice. Open the record, fix it if needed, then mark it resolved. Choose Dismiss if it is not really a problem.</p>
+        {issues.length === 0 ? <div className="empty" style={{ marginTop: 14 }}>Nothing to look at. Problems from imports show up here.</div> : (
           <div className="stack" style={{ marginTop: 14 }}>{issues.map((i) => (
             <div key={i.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--line)', paddingTop: 12, alignItems: 'flex-start' }}>
               <div style={{ flex: '1 1 320px' }}>
-                <span className={`pill ${i.kind === 'conflict' ? 'warn' : 'info'}`}>{i.kind}</span>{' '}
+                <span className={`pill ${i.kind === 'conflict' ? 'warn' : 'info'}`}>{i.kind === 'conflict' ? 'Disagrees with a checked record' : 'May be listed twice'}</span>{' '}
                 <Link className="link" href={`/ops/${i.entity}/${i.entity_id}`}><b>{i.name ?? `#${i.entity_id}`}</b></Link>{i.other_id && <> and <Link className="link" href={`/ops/organizations/${i.other_id}`}>{i.other ?? `#${i.other_id}`}</Link></>}
                 <p className="small muted">{i.detail}</p>
                 {i.field && <div className="diff" style={{ marginTop: 4 }}><span className="muted">{i.field}</span><span className="from">{i.existing_value}</span><span className="to">{i.incoming_value}</span></div>}
@@ -55,9 +55,9 @@ export default function DataQuality() {
       </section>
 
       <section className="card" aria-labelledby="om">
-        <h2 id="om">Organizations missing details <span className="muted" style={{ fontWeight: 500 }}>{Math.min(orgMissingN, 500)}</span></h2>
-        <p className="small muted" style={{ margin: '6px 0 12px' }}><b>{Math.min(orgMissingN, 500)}</b> organizations with no website, or with type still set to Other (first 500) · {ms('verified')} verified · {ms('unverified')} unverified · {ms('demo')} demo. Add the website or pick a type on the organization page.</p>
-        <div className="table-wrap" style={{ maxHeight: 420, overflow: 'auto' }}><table className="t"><thead><tr><th>Name</th><th>Missing</th><th>Verification</th></tr></thead><tbody>
+        <h2 id="om">Groups missing details <span className="muted" style={{ fontWeight: 500 }}>{Math.min(orgMissingN, 500)}</span></h2>
+        <p className="small muted" style={{ margin: '6px 0 12px' }}><b>{Math.min(orgMissingN, 500)}</b> groups with no website, or whose kind is still Other (first 500) · {ms('verified')} checked · {ms('unverified')} not yet checked · {ms('demo')} sample. Add the website or pick a kind on the group's page.</p>
+        <div className="table-wrap" style={{ maxHeight: 420, overflow: 'auto' }}><table className="t"><thead><tr><th>Name</th><th>Missing</th><th>Checked?</th></tr></thead><tbody>
           {orgMissing.map((o) => <tr key={o.id}><td><Link className="link" href={`/ops/organizations/${o.id}`}>{o.name}</Link></td><td>{[!o.website && 'Website', o.type === 'other' && 'Type'].filter(Boolean).join(', ')}</td><td><VerifPill v={o.verification} /></td></tr>)}
           {orgMissing.length === 0 && <tr><td colSpan={3} className="muted">Every organization has a website and a type.</td></tr>}
         </tbody></table></div>
@@ -79,7 +79,7 @@ export default function DataQuality() {
       </section>
 
       <section className="card" aria-labelledby="sr">
-        <h2 id="sr">Sources to re-check <span className="muted" style={{ fontWeight: 500 }}>{recheck.length}</span></h2>
+        <h2 id="sr">Sources to look at again <span className="muted" style={{ fontWeight: 500 }}>{recheck.length}</span></h2>
         {recheck.length === 0 ? <p className="muted small" style={{ marginTop: 8 }}>Every fetched source ran within the last 30 days.</p> : <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0' }}>{recheck.map((s) => <li key={s.id} className="small" style={{ padding: '4px 0' }}><Link className="link" href="/ops/sources">{s.name}</Link> · {s.why} · last {relativeDays(s.last_fetched_at)}</li>)}</ul>}
       </section>
     </OpsPage>
