@@ -66,7 +66,15 @@ if [ ! -f "$MARKER" ]; then
   ./olca.sh import-method "$EF_ZIP" "$EF_DB" > import_method.log 2>&1
   status=$?
   set -e
-  grep -E "RESULT|import finished|refusing|Exception|ERROR" import_method.log | head -20
+  # (no "| head" here: with pipefail it would abort the script silently)
+  grep -E "RESULT|import finished|refusing|nothing was imported|upgraded" import_method.log || true
+  skipped=$(grep -c "^ERROR: Import of" import_method.log || true)
+  if [ "${skipped:-0}" -gt 0 ]; then
+    echo "note: $skipped data set(s) could not be stored and were skipped, for example"
+    echo "      substances with names longer than openLCA's 255-character limit."
+    echo "      Details in import_method_skipped.log"
+    grep -E "^ERROR: |truncation error" import_method.log > import_method_skipped.log || true
+  fi
   after=$(count_of "$EF_DB" impact_categories)
   echo "impact categories: $before before, $after after the import"
   if [ "$status" -ne 0 ] || [ -z "$after" ] || [ "$after" -le "${before:-0}" ]; then
