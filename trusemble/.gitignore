@@ -1,0 +1,11 @@
+node_modules
+.next
+data/*.db
+data/*.db-*
+data/uploads
+data/counties.geojson
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+coverage
