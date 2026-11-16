@@ -39,6 +39,7 @@ checks = {
     "functional unit text": rows[0]["functional_unit"] == "1 MJ of Electricity",
     "comma-decimal copy": "0,277778" in open(f"{tmp}/out/impacts_excel_comma_decimal.csv", encoding="utf-8-sig").read(),
     "citation in impacts.csv": rows[0]["citation"].startswith("Doe, J. (2010)"),
+    "usage note flags the unlinked hard coal input": "Hard coal (0.1111 kg per 1 MJ)" in rows[0]["usage_notes"],
 }
 for k, ok in checks.items():
     print(("PASS " if ok else "FAIL ") + k)

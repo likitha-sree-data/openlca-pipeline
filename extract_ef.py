@@ -228,6 +228,34 @@ def functional_unit(ref_ex):
     return f"1 {unit} of {flow}"
 
 
+def usage_notes(process, ref_ex, meta):
+    """Plain-words warnings a user of the numbers must know.
+
+    Returns (inputs_not_included, usage_notes). Product inputs without a
+    default provider are not calculated with ONLY_DEFAULTS linking (that rule
+    is what keeps unrelated datasets out), so their burden is missing from
+    the value, e.g. the electricity of a compressed air dataset.
+    """
+    notes, missing = [], []
+    ref_amount = abs(ref_ex.amount) if ref_ex is not None and ref_ex.amount else 1.0
+    for e in process.exchanges or []:
+        if e is ref_ex or not e.is_input or e.default_provider is not None or e.flow is None:
+            continue
+        if enum_str(e.flow.flow_type) != "PRODUCT_FLOW" or not e.amount:
+            continue
+        missing.append(f"{e.flow.name} ({e.amount / ref_amount:.4g} {ref_name(e.unit)} per 1 {meta['ref_unit']})")
+    if missing:
+        notes.append("Incomplete: these inputs are not included in the values, add their impacts "
+                     "yourself: " + "; ".join(missing))
+    if (meta.get("category_path") or "").startswith("Transport") and meta["ref_unit"] in ("kg", "t"):
+        notes.append("Transport per mass of cargo over a distance fixed inside the dataset "
+                     "(see parameters), not per t*km; prefer a t*km dataset")
+    if meta.get("mentions_recycling_credit"):
+        notes.append("Documentation mentions credits (e.g. recycling or energy recovery); "
+                     "values can be low or negative, do not add the same credit again")
+    return (" | ".join(missing) if missing else ""), " || ".join(notes)
+
+
 def process_metadata(process, lookup):
     doc = process.process_documentation or o.ProcessDocumentation()
     ref_ex = next((e for e in process.exchanges or [] if e.is_quantitative_reference), None)
@@ -297,6 +325,7 @@ def process_metadata(process, lookup):
                         ("modeling_constants_description", "technology_description",
                          "inventory_method_description")).lower()
     meta["mentions_recycling_credit"] = ("credit" in doc_text)
+    meta["inputs_not_included"], meta["usage_notes"] = usage_notes(process, ref_ex, meta)
     meta["ref_flow_type"] = enum_str(ref_ex.flow.flow_type) if ref_ex and ref_ex.flow else ""
     if process.other_properties:
         meta["other_properties"] = json.dumps(process.other_properties, ensure_ascii=False)
@@ -473,7 +502,7 @@ def export(cfg, out_dir, minfo):
                    "impact_category", "impact_value", "impact_unit",
                    "method_name", "method_version", "database",
                    "citation", "data_set_owner", "valid_from", "valid_until",
-                   "mentions_recycling_credit",
+                   "mentions_recycling_credit", "usage_notes",
                    "reference_process_share", "impact_category_id"]
     with open(os.path.join(out_dir, "impacts.csv"), "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=impact_cols)
@@ -503,6 +532,7 @@ def export(cfg, out_dir, minfo):
                     "valid_from": m.get("valid_from", ""),
                     "valid_until": m.get("valid_until", ""),
                     "mentions_recycling_credit": m.get("mentions_recycling_credit", ""),
+                    "usage_notes": m.get("usage_notes", ""),
                     "reference_process_share": fmt_sig(iv["reference_process_share"], 4),
                     "impact_category_id": iv["impact_category_id"],
                 })

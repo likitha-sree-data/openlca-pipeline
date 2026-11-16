@@ -190,6 +190,23 @@ Every impact row carries `reference_process_share`: the share of the
 value that comes from the process itself. For an aggregated dataset it
 should be 1. Anything clearly below 1 means linked providers were added.
 
+### Findings from the full ELCD run (2026-11-16, EF 3.0 adapted)
+
+- 497 of 503 datasets calculated; 6 failed because openLCA could not build
+  their calculation (3 copper semi-finished products, bentonite, 2 calcium
+  carbonate slurries). Their IDs are in `run_summary.json`.
+- No dataset received anything from linked providers (reference share 1.0).
+- 8 datasets show 0 for climate change because their only inputs are
+  products without a default provider (compressed air: electricity; electric
+  rail: electricity). The value is incomplete, not climate-free;
+  `usage_notes` names the missing input and its amount per reference unit.
+- 8 waste incineration datasets are negative (wood, paper, textiles,
+  biodegradable, mixed waste, ferrous metals): energy and material recovery
+  credits exceed the mostly biogenic emissions. Plastics incineration stays
+  positive (fossil carbon).
+- 14 transport datasets are per kg of cargo over a fixed built-in distance
+  (e.g. cargo plane 8.54 kg CO2 eq per kg); prefer the t*km datasets.
+
 ### Findings from the ELCD sanity check (2026-10-07)
 
 - **Negative reference amounts (waste treatment).** GaBi/ILCD waste
@@ -241,6 +258,7 @@ should be 1. Anything clearly below 1 means linked providers were added.
 | `method_name`, `method_version`, `database` | Where the number comes from |
 | `citation`, `data_set_owner`, `valid_from`, `valid_until` | Bibliographic citation, owner and validity period of the dataset (repeated from `process_metadata.csv`) |
 | `mentions_recycling_credit` | The dataset documentation mentions credits (for example end-of-life recycling); read it before combining with your own recycling credits |
+| `usage_notes` | Plain-words warnings: inputs not included in the value (e.g. the electricity of a compressed air dataset, to be added by the user), transport per kg of cargo over a fixed distance, credits included |
 | `reference_process_share` | Diagnostic, see "Calculation". Empty when the value is 0 |
 | `impact_category_id` | Join key to `impact_categories.csv` |
 
