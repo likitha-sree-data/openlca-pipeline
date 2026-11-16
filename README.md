@@ -37,6 +37,18 @@ So the deliverables are:
 | A | All EF 3.1 characterization factors as tables | `ef_factors.py` on the reference package, no openLCA needed |
 | B | ELCD 3.2 datasets calculated with the real EF 3.1 method | `./olca.sh import-method` into a copy of the ELCD database, `coverage_check.py`, then `extract_ef.py config/elcd_ef31.json` |
 
+### One command for both
+
+```bash
+./run_deliverables.sh
+```
+
+Needs `EF-v3.1_2.zip` and the ELCD `.zolca` in the project folder. It builds
+A, restores ELCD, imports the EF 3.1 method into a copy, runs the coverage
+check, calculates every ELCD dataset with EF 3.1 and packs everything into
+`output/carbbin_delivery_<date>.zip`. Safe to rerun: finished steps are
+skipped and an interrupted calculation resumes.
+
 ### A: characterization factors
 
 ```bash

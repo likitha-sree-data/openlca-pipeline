@@ -22,6 +22,14 @@ PIDFILE="$DATA/ipc-server.pid"
 mkdir -p "$DATA/databases"
 
 [ -d "$LIB" ] || { echo "tools/lib missing, run ./setup.sh first"; exit 1; }
+# PIDs of running openLCA IPC servers (only real java processes, never a shell
+# whose command line merely mentions the server); optional filter on database
+server_pids() {
+  for pid in $(pgrep -x java); do
+    tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q "org.openlca.ipc.Server.*${1:-}" && echo "$pid"
+  done
+  return 0
+}
 tool() { java -Xmx"${OLCA_MEM:-4g}" -Ddata="$DATA" -cp "$LIB/*" "$HERE/tools/OlcaTool.java" "$@"; }
 
 case "${1:-}" in
@@ -38,7 +46,7 @@ case "${1:-}" in
     [ $# -eq 3 ] || { echo "usage: $0 copy <db> <new db>"; exit 1; }
     [ -d "$DATA/databases/$2" ] || { echo "no database $2"; exit 1; }
     [ ! -e "$DATA/databases/$3" ] || { echo "database $3 already exists"; exit 1; }
-    if pgrep -f "org.openlca.ipc.Server.*-db $2( |$)" > /dev/null; then
+    if [ -n "$(server_pids "-db $2 ")" ]; then
       echo "database $2 is open in a running server, run ./olca.sh stop first"; exit 1
     fi
     cp -r "$DATA/databases/$2" "$DATA/databases/$3" && echo "copied $2 to $3" ;;
@@ -66,11 +74,11 @@ case "${1:-}" in
     echo "server did not start, see $DATA/ipc-server.log"; tail -20 "$DATA/ipc-server.log"; exit 1 ;;
   stop)
     # also catches servers started some other way (no pid file)
-    PIDS="$( (cat "$PIDFILE" 2>/dev/null; pgrep -f org.openlca.ipc.Server) | sort -u)"
+    PIDS="$(server_pids | sort -u)"
     rm -f "$PIDFILE"
     if [ -z "$PIDS" ]; then echo "no server running"; exit 0; fi
     kill $PIDS 2>/dev/null
-    for _ in $(seq 1 20); do pgrep -f org.openlca.ipc.Server > /dev/null || break; sleep 1; done
+    for _ in $(seq 1 20); do [ -z "$(server_pids)" ] && break; sleep 1; done
     echo "stopped" ;;
   *)
     sed -n '2,18p' "$0"; exit 1 ;;
