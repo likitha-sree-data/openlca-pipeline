@@ -30,7 +30,7 @@ server_pids() {
   done
   return 0
 }
-tool() { java -Xmx"${OLCA_MEM:-4g}" -Ddata="$DATA" -cp "$LIB/*" "$HERE/tools/OlcaTool.java" "$@"; }
+tool() { java -Xmx"${OLCA_MEM:-3g}" -Ddata="$DATA" -cp "$LIB/*" "$HERE/tools/OlcaTool.java" "$@"; }
 
 case "${1:-}" in
   restore|import-ilcd|import-method)
@@ -58,7 +58,7 @@ case "${1:-}" in
     if curl -s -o /dev/null "http://localhost:$PORT"; then
       echo "port $PORT is already in use (another IPC server, or the GUI's). Run ./olca.sh stop or close it first."; exit 1
     fi
-    nohup java -Xmx"${OLCA_MEM:-4g}" -cp "$LIB/*" org.openlca.ipc.Server \
+    nohup java -Xmx"${OLCA_MEM:-3g}" -cp "$LIB/*" org.openlca.ipc.Server \
       -data "$DATA" -db "$DB" -port "$PORT" > "$DATA/ipc-server.log" 2>&1 &
     echo $! > "$PIDFILE"
     for _ in $(seq 1 60); do
