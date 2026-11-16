@@ -30,7 +30,7 @@ After a real ingest, run `npm run ingest -- clear-demo` and set `PUBLIC_INCLUDE_
 ## The team tool in plain terms
 
 - **Today**: what needs a person now (new website requests, overdue follow-ups, records to check), where requests stand, what closes soon, and how much of the data a person has checked. The pilot goals sit one tab over.
-- **People**: requests (table, board, triage), contacts, suggested matches.
+- **People**: requests, contacts, suggested matches. Each request opens as one page built around the job: what they asked, who to reply to (with email and phone links), where it stands (one click to move it), the next step (what, who, by when), and "make the introduction", which asks who was introduced to whom so there is a real record. The list filters to Mine, Nobody yet and Overdue.
 - **Projects and funding**: projects, organizations, funding programs.
 - **Check data**: **To check** shows one record next to where it came from, with one button for "it matches". Also problems, importing a file, sources and an all-records map.
 - **Settings**: alerts and the calculator's cost-per-acre figures.
@@ -81,7 +81,7 @@ scripts/               seed, ingest, create-user, smoke, e2e
 
 ```bash
 npm run typecheck
-npm test                                        # 66 unit tests: calculator, imports, ingest, matching, visibility, sessions
+npm test                                        # 73 unit tests: calculator, imports, ingest, matching, visibility, sessions
 npm run build && npm start &
 BASE=http://localhost:3000 npm run smoke        # every route and API
 BASE=http://localhost:3000 npm run test:e2e     # real browser: forms, login, imports, mobile layout (needs Playwright)
@@ -119,7 +119,7 @@ Back up the `/data` volume (it holds the database and uploaded spreadsheets).
 
 ## What is and is not verified
 
-Verified here: typecheck, 66 unit tests, a smoke run over every route and API, and a browser run (public forms, calculator, operator login, create/edit/verify, spreadsheet import and re-import, pilot accept, phone layout, map layers drawn on a blank basemap).
+Verified here: typecheck, 73 unit tests, a smoke run over every route and API, and a browser run (public forms, calculator, operator login, create/edit/verify, spreadsheet import and re-import, pilot accept, phone layout, map layers drawn on a blank basemap).
 
 Not verified:
 - **Live public APIs.** The build sandbox could reach none of the source APIs, so the fetchers are tested against canned payloads only. Field names for NFPA, ODF, FACTS, OpenFEMA, USAspending and the National Risk Index are best-effort and logged when unmatched.

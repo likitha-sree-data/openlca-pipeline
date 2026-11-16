@@ -139,6 +139,32 @@ const check = (cond, m) => (cond ? pass(m) : fail(m));
     const r = await go(p);
     check(r.status() === 200 && (await body()).includes(marker), `ops ${p}`);
   }
+  // work one request from start to finish: open it, set the next step, move it, record the introduction
+  await go('/ops');
+  await page.getByRole('link', { name: 'Reply' }).first().click();
+  await page.waitForURL(/\/ops\/requests\/\d+/);
+  check((await body()).includes('What they asked') && (await body()).includes('Who to reply to'), 'a request page shows what they asked and who to reply to');
+  await shot('ops-request', false);
+  await page.locator('#ns-text').fill('E2E: send the program list');
+  await page.locator('#ns-owner').selectOption({ label: 'Adam Wolfe' });
+  await page.locator('#ns-date').fill('2026-12-01');
+  await page.getByRole('button', { name: 'Save next step' }).click();
+  await page.getByText('Saved.').first().waitFor({ timeout: 5000 });
+  check(true, 'next step saved with an owner and a date');
+  await page.getByRole('button', { name: 'Move to Talking' }).click();
+  await page.waitForTimeout(900);
+  check((await page.locator('#stand').locator('xpath=..').innerText()).includes('Talking'), 'one click moves the request to Talking');
+  await page.locator('#intro-note').fill('ok');
+  await page.getByRole('button', { name: 'Record the introduction' }).click();
+  await page.getByText(/Say who you introduced/).waitFor({ timeout: 5000 });
+  check(true, 'an introduction needs to say who was introduced');
+  await page.locator('#intro-note').fill('E2E HOA to a program officer, both agreed');
+  await page.getByRole('button', { name: 'Record the introduction' }).click();
+  await page.locator('#introdone').waitFor({ timeout: 5000 });
+  check((await page.locator('#introdone').locator('xpath=..').innerText()).includes('E2E HOA to a program officer') && (await body()).includes('Introduction made: E2E HOA'), 'the introduction is confirmed on the page and in the history');
+  await go('/ops/requests?show=mine');
+  check((await body()).includes('Introduced') || (await body()).includes('E2E: send the program list'), 'the Mine filter shows requests assigned to me');
+
   // check the data: one record, side by side with its source
   await go('/ops/check');
   const waiting = async () => Number(((await body()).match(/([\d,]+) waiting/) || [])[1].replace(/,/g, ''));

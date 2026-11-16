@@ -131,3 +131,56 @@ describe('alerts', () => {
     expect(text).toMatch(/open requests have no next step/);
   });
 });
+
+import { markIntroduced, setNextStep } from '../src/lib/requests';
+import { get } from '../src/lib/db';
+import { listRows } from '../src/lib/crud';
+
+describe('working one request', () => {
+  let id = 0;
+  beforeEach(() => {
+    freshDb();
+    seedDatabase({ password: 'test-password-1' });
+    run(`INSERT INTO users (id, name, email, initials) VALUES (50, 'Mia Park', 'mia@x.org', 'MP')`);
+    id = get<{ id: number }>(`SELECT id FROM requests WHERE ref = 'TS-2026-0038'`)!.id;
+  });
+
+  it('sets, changes and clears the next step, and keeps a record', () => {
+    expect(setNextStep(id, { ownerId: 50, date: '2026-11-20', text: 'Email the program list' }, 50)).toEqual({ ok: true });
+    expect(get('SELECT owner_id, next_action_date, next_action FROM requests WHERE id = ?', id)).toEqual({ owner_id: 50, next_action_date: '2026-11-20', next_action: 'Email the program list' });
+    expect(setNextStep(id, { ownerId: null, date: null, text: null }, 50)).toEqual({ ok: true });
+    expect(get('SELECT owner_id, next_action_date, next_action FROM requests WHERE id = ?', id)).toEqual({ owner_id: null, next_action_date: null, next_action: null });
+    expect(get<{ n: number }>(`SELECT COUNT(*) n FROM activities WHERE entity = 'requests' AND entity_id = ? AND body LIKE 'Next step:%'`, id)!.n).toBe(2);
+  });
+
+  it('rejects bad dates, unknown people and over-long text', () => {
+    expect(setNextStep(id, { ownerId: null, date: '11/20/2026', text: null }, 50).ok).toBe(false);
+    expect(setNextStep(id, { ownerId: null, date: '2026-02-31', text: null }, 50).ok).toBe(false);
+    expect(setNextStep(id, { ownerId: 9999, date: null, text: null }, 50).ok).toBe(false);
+    expect(setNextStep(id, { ownerId: null, date: null, text: 'x'.repeat(301) }, 50).ok).toBe(false);
+    expect(setNextStep(987654, { ownerId: null, date: null, text: null }, 50).ok).toBe(false);
+  });
+
+  it('records an introduction only when it says who, and schedules a follow-up', () => {
+    expect(markIntroduced(id, 'ok', 50).ok).toBe(false);
+    expect(get<{ status: string }>('SELECT status FROM requests WHERE id = ?', id)!.status).toBe('new');
+    expect(markIntroduced(id, 'Ridge HOA to the Bend Foundation', 50, '2026-11-16')).toEqual({ ok: true });
+    const r = get<{ status: string; next_action_date: string; next_action: string }>('SELECT status, next_action_date, next_action FROM requests WHERE id = ?', id)!;
+    expect(r).toEqual({ status: 'intro_made', next_action_date: '2026-11-23', next_action: 'Check how the introduction went' });
+    expect(get<{ body: string }>(`SELECT body FROM activities WHERE entity = 'requests' AND entity_id = ? AND kind = 'status' ORDER BY id DESC LIMIT 1`, id)!.body).toMatch(/Ridge HOA to the Bend Foundation/);
+  });
+
+  it('keeps an existing future next step when introducing', () => {
+    setNextStep(id, { ownerId: 50, date: '2026-12-01', text: 'Call them' }, 50);
+    markIntroduced(id, 'Pat to Lee, both agreed', 50, '2026-11-16');
+    expect(get<{ d: string; t: string }>('SELECT next_action_date d, next_action t FROM requests WHERE id = ?', id)).toEqual({ d: '2026-12-01', t: 'Call them' });
+  });
+
+  it('filters requests to mine, nobody yet and overdue', () => {
+    setNextStep(id, { ownerId: 50, date: '2026-11-01', text: 'Call' }, 50);
+    const cfg = ENTITIES.requests;
+    expect(listRows(cfg, { extra: { sql: "r.owner_id = ? AND r.status != 'closed'", params: [50] } }).total).toBe(1);
+    expect(listRows(cfg, { extra: { sql: "r.owner_id IS NULL AND r.status != 'closed'", params: [] } }).total).toBe(31);
+    expect(listRows(cfg, { extra: { sql: "r.next_action_date < ? AND r.status != 'closed'", params: ['2026-11-16'] } }).total).toBe(1);
+  });
+});

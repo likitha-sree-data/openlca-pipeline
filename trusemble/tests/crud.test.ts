@@ -87,3 +87,15 @@ describe('db helpers', () => {
     expect(Object.getPrototypeOf(get('SELECT * FROM users')!)).toBe(Object.prototype);
   });
 });
+
+import { isRealDate } from '../src/lib/format';
+describe('dates', () => {
+  it('accepts only real calendar dates', () => {
+    for (const ok of ['2026-11-16', '2024-02-29', '2026-12-31']) expect(isRealDate(ok)).toBe(true);
+    for (const bad of ['2026-02-31', '2026-02-29', '2026-13-01', '2026-00-10', '11/16/2026', '2026-1-1', '', 'tomorrow']) expect(isRealDate(bad)).toBe(false);
+  });
+  it('is enforced by form validation', () => {
+    const r = parseFields(ENTITIES.requests.fields, { get: (k: string) => ({ from_name: 'A', kind: 'client', status: 'new', next_action_date: '2026-02-31' } as Record<string, string>)[k] });
+    expect(r.ok).toBe(false);
+  });
+});

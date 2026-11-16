@@ -13,6 +13,7 @@ import { deadlineNote } from '@/lib/programs';
 import { whereLabel } from '@/lib/crud';
 import { scheduleAction, moveAction } from '@/app/ops/actions';
 import { get } from '@/lib/db';
+import { currentUser } from '@/lib/auth';
 import { safeHref } from '@/lib/safe-url';
 
 type Row = Record<string, string | number | null>;
@@ -35,7 +36,15 @@ export default async function EntityList({ params, searchParams }: { params: Pro
   if (filters.archived === 'any') filters.archived = undefined;
   const needsSchedule = cfg.key === 'requests' && sp.needs === 'schedule';
   const view = sp.view === 'board' && (cfg.key === 'requests' || cfg.key === 'projects') ? 'board' : 'table';
-  const { rows, total, counts } = listRows<Row>(cfg, { q: sp.q, verification: sp.v, filters, tab: sp.tab, limit: view === 'board' ? 300 : limit });
+  const me = await currentUser();
+  const today = todayIso();
+  const SHOW: Record<string, { sql: string; params: (string | number)[] }> = {
+    mine: { sql: "r.owner_id = ? AND r.status != 'closed'", params: [me?.id ?? -1] },
+    nobody: { sql: "r.owner_id IS NULL AND r.status != 'closed'", params: [] },
+    overdue: { sql: "r.next_action_date < ? AND r.status != 'closed'", params: [today] },
+  };
+  const show = cfg.key === 'requests' && sp.show && SHOW[sp.show] ? sp.show : undefined;
+  const { rows, total, counts } = listRows<Row>(cfg, { q: sp.q, verification: sp.v, filters, tab: sp.tab, extra: show ? SHOW[show] : undefined, limit: view === 'board' ? 300 : limit });
   const shown = needsSchedule ? rows.filter((r) => !r.next_action_date && r.status !== 'closed') : rows;
   const users = userOptions();
   const qs = (patch: Record<string, string | undefined>) => {
@@ -66,10 +75,16 @@ export default async function EntityList({ params, searchParams }: { params: Pro
         </nav>
       )}
 
+      {cfg.key === 'requests' && (
+        <div className="seg" role="group" aria-label="Whose" style={{ marginBottom: 6 }}>
+          {([[undefined, 'Everyone'], ['mine', 'Mine'], ['nobody', 'Nobody yet'], ['overdue', 'Overdue']] as const).map(([k, l]) => <Link key={l} href={qs({ show: k })} className={show === k ? 'on' : ''}>{l}</Link>)}
+        </div>
+      )}
       <AutoForm className="toolbar">
         {view === 'board' && <input type="hidden" name="view" value="board" />}
         {sp.tab && <input type="hidden" name="tab" value={sp.tab} />}
         {sp.v && <input type="hidden" name="v" value={sp.v} />}
+        {sp.show && <input type="hidden" name="show" value={sp.show} />}
         {sp.needs && <input type="hidden" name="needs" value={sp.needs} />}
         <label className="sr-only" htmlFor="q">Search</label>
         <div className="search" style={{ position: 'relative' }}><Search size={16} aria-hidden style={{ position: 'absolute', left: 14, top: 13, color: 'var(--muted)' }} /><input id="q" name="q" defaultValue={sp.q} className="input" style={{ paddingLeft: 36, width: '100%' }} placeholder={`Search ${cfg.search.map((s) => s.split('.')[1]).slice(0, 3).join(', ')}`} /></div>

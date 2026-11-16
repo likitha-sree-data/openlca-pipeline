@@ -2,13 +2,13 @@ import { all, get, run, scalar, tx, type Param } from './db';
 import { clean, nameKey, toNumber } from './text';
 import { ENTITIES, type EntityCfg, type Field } from './entities';
 import { REQUEST_STATUSES, US_STATES } from './constants';
+import { isRealDate } from './format';
 
 export type Values = Record<string, string | number | null>;
 export type ParseResult = { ok: true; data: Values } | { ok: false; errors: Record<string, string>; values: Record<string, string> };
 
 const URL_RE = /^https?:\/\/[^\s]+$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Validate form input against field specs. Empty optional values become null. */
 export function parseFields(fields: Field[], input: { get(name: string): unknown }): ParseResult {
@@ -39,7 +39,7 @@ export function parseFields(fields: Field[], input: { get(name: string): unknown
       }
       case 'url': if (!URL_RE.test(s)) errors[f.name] = `${f.label} must start with http:// or https://`; else data[f.name] = s; break;
       case 'email': if (!EMAIL_RE.test(s)) errors[f.name] = `${f.label} is not a valid email`; else data[f.name] = s.toLowerCase(); break;
-      case 'date': if (!DATE_RE.test(s) || Number.isNaN(Date.parse(s))) errors[f.name] = `${f.label} must be a date`; else data[f.name] = s; break;
+      case 'date': if (!isRealDate(s)) errors[f.name] = `${f.label} must be a date`; else data[f.name] = s; break;
       case 'select':
         if (f.options && !f.options.some((o) => o[0] === s)) errors[f.name] = `Choose a valid ${f.label.toLowerCase()}`;
         else data[f.name] = s;
@@ -154,6 +154,7 @@ export type ListParams = {
   verification?: string; // verified | unverified | demo
   filters?: Record<string, string | undefined>;
   tab?: string; // requests status tab
+  extra?: { sql: string; params: Param[] }; // an additional ready-made condition, e.g. the requests assigned to me
   limit?: number;
   offset?: number;
 };
@@ -177,6 +178,7 @@ function listWhere(cfg: EntityCfg, p: ListParams, withVerification: boolean) {
     parts.push(`${a}.verification = ?`);
     params.push(p.verification);
   }
+  if (p.extra) { parts.push(p.extra.sql); params.push(...p.extra.params); }
   if (cfg.key === 'requests' && p.tab && p.tab !== 'all') {
     const map: Record<string, string> = { new: "r.status IN ('new','needs_info')", conversation: "r.status = 'qualified'", progress: "r.status = 'matching'", intro: "r.status = 'intro_made'", closed: "r.status = 'closed'" };
     if (map[p.tab]) parts.push(map[p.tab]);

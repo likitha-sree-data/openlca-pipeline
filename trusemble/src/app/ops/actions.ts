@@ -17,8 +17,9 @@ import { parseUpload, type ParsedFile } from '@/lib/import/parse';
 import { guessEntity, guessMapping, IMPORT_FIELDS, KNOWN_LAYOUTS, type ImportEntity } from '@/lib/import/fields';
 import { applyPlan, scanDuplicates } from '@/lib/import/apply';
 import { buildPlan, type Mapping } from '@/lib/import/plan';
-import { todayIso } from '@/lib/format';
+import { isRealDate, todayIso } from '@/lib/format';
 import { alertChannels, sendAlert } from '@/lib/notify';
+import { markIntroduced, setNextStep } from '@/lib/requests';
 
 export type ActionState = { ok?: boolean; message?: string; error?: string; fieldErrors?: Record<string, string>; values?: Record<string, string> };
 
@@ -118,7 +119,7 @@ const pick = (o: Values, keys: string[]): Values => Object.fromEntries(keys.filt
 export async function scheduleAction(id: number, fd: FormData) {
   const user = await requireUser();
   const owner = /^\d+$/.test(String(fd.get('owner_id') ?? '')) ? Number(fd.get('owner_id')) : null;
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get('next_action_date') ?? '')) ? String(fd.get('next_action_date')) : null;
+  const date = isRealDate(String(fd.get('next_action_date') ?? '')) ? String(fd.get('next_action_date')) : null;
   const action = clean(fd.get('next_action'));
   if (!owner && !date && !action) return;
   run(
@@ -416,4 +417,25 @@ export async function sendTestAlertAction(_prev: ActionState, _fd: FormData): Pr
   const r = await sendAlert({ title: 'Test alert from TruSemble', lines: [`${user.name} sent this to check that alerts reach you.`], path: '/ops' });
   if (r.failed.length) return { error: `Could not send by ${r.failed.join(' and ')}. Check the settings below.` };
   return { ok: true, message: `Sent by ${r.sent.join(' and ')}.` };
+}
+
+// ---------------------------------------------------------------- one request
+export async function nextStepAction(id: number, _prev: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const owner = /^\d+$/.test(String(fd.get('owner_id') ?? '')) ? Number(fd.get('owner_id')) : null;
+  const date = clean(fd.get('next_action_date'));
+  const r = setNextStep(id, { ownerId: owner, date, text: clean(fd.get('next_action')) }, user.id);
+  if (!r.ok) return { error: r.error };
+  revalidatePath(`/ops/requests/${id}`);
+  revalidatePath('/ops');
+  return { ok: true, message: 'Saved.' };
+}
+
+export async function introducedAction(id: number, _prev: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const r = markIntroduced(id, String(fd.get('note') ?? ''), user.id);
+  if (!r.ok) return { error: r.error };
+  revalidatePath(`/ops/requests/${id}`);
+  revalidatePath('/ops');
+  return { ok: true, message: 'Introduction recorded. A follow-up is set for next week.' };
 }
