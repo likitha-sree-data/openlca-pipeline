@@ -56,6 +56,8 @@ public class OlcaTool {
               imp.log().countOf(ImportLog.State.IMPORTED),
               imp.log().countOf(ImportLog.State.ERROR),
               imp.log().countOf(ImportLog.State.WARNING));
+          if (imp.log().countOf(ImportLog.State.IMPORTED) == 0)
+            fail("nothing was imported: check that the package contains ILCD data sets");
         }
       }
       case "counts" -> {

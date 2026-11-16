@@ -47,14 +47,33 @@ fi
 echo "ok: $ELCD_DB"
 
 step "4/7 copy of ELCD with the EF 3.1 method (original stays untouched)"
-if [ ! -d "$DATA/databases/$EF_DB" ]; then
+# The copy only counts as done once the import is verified (marker file).
+# A copy without the marker is left over from an interrupted run: redo it.
+MARKER="$DATA/$EF_DB.ef31-imported"
+count_of() { ./olca.sh counts "$1" 2>/dev/null | awk -v k="$2:" '$1 == k {print $2}'; }
+if [ -d "$DATA/databases/$EF_DB" ] && [ ! -f "$MARKER" ]; then
+  echo "found $EF_DB from an unfinished run, recreating it"
+  rm -rf "${DATA:?}/databases/$EF_DB"
+fi
+if [ ! -f "$MARKER" ]; then
+  before=$(count_of "$ELCD_DB" impact_categories)
   ./olca.sh copy "$ELCD_DB" "$EF_DB"
-  if ! ./olca.sh import-method "$EF_ZIP" "$EF_DB" 2>&1 | tee import_method.log | grep -E "RESULT|import finished|refusing"; then
-    rm -rf "${DATA:?}/databases/$EF_DB"; die "the method import failed, see import_method.log"
+  echo "importing the EF 3.1 method (this can take 10 to 30 minutes)..."
+  set +e
+  ./olca.sh import-method "$EF_ZIP" "$EF_DB" > import_method.log 2>&1
+  status=$?
+  set -e
+  grep -E "RESULT|import finished|refusing|Exception|ERROR" import_method.log | head -20
+  after=$(count_of "$EF_DB" impact_categories)
+  echo "impact categories: $before before, $after after the import"
+  if [ "$status" -ne 0 ] || [ -z "$after" ] || [ "$after" -le "${before:-0}" ]; then
+    rm -rf "${DATA:?}/databases/$EF_DB"
+    die "the EF 3.1 import added no impact categories. Send Claude the file import_method.log"
   fi
+  touch "$MARKER"
   rm -f import_method.log
 else
-  echo "ok: $EF_DB already exists"
+  echo "ok: $EF_DB already has the EF 3.1 method"
 fi
 
 step "5/7 server and coverage check"

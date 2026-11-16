@@ -161,6 +161,8 @@ def main():
     pkg = Package(pkg_path)
     units = make_unit_resolver(pkg)
 
+    if not pkg.uuids("lciamethods"):
+        sys.exit(f"STOPPED: no LCIA method data sets (lciamethods folder) found in {pkg_path}")
     categories, factor_rows = [], []
     missing_flows = set()
     for mid in pkg.uuids("lciamethods"):
