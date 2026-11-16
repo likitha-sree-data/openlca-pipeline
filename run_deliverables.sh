@@ -34,8 +34,7 @@ $PY -c "import olca_ipc" 2>/dev/null || die "the openLCA Python client is missin
 [ -f "$EF_ZIP" ] || die "$EF_ZIP not found here. Upload it from Jaume's Drive link into this folder."
 
 step "2/7 deliverable A: EF 3.1 characterization factors"
-python3 -I ef_factors.py "$EF_ZIP" output/ef31_factors > output_ef31_summary.tmp
-cat output_ef31_summary.tmp; rm -f output_ef31_summary.tmp
+python3 -I ef_factors.py "$EF_ZIP" output/ef31_factors
 
 step "3/7 ELCD database"
 ./olca.sh stop > /dev/null
@@ -44,7 +43,11 @@ if [ ! -d "$DATA/databases/$ELCD_DB" ]; then
   ./olca.sh restore "$ELCD_ZOLCA" "$ELCD_DB" 2>&1 | grep -E "restored|Exception|not found" || true
 fi
 [ -d "$DATA/databases/$ELCD_DB" ] || die "restoring $ELCD_DB failed"
-echo "ok: $ELCD_DB"
+# Starting the server once brings an old database schema up to date (the
+# 2022 ELCD backup is schema version 9); this is the path proven on ELCD.
+./olca.sh server "$ELCD_DB" "$PORT" > /dev/null || die "could not open $ELCD_DB, see $DATA/ipc-server.log"
+./olca.sh stop > /dev/null
+echo "ok: $ELCD_DB (schema up to date)"
 
 step "4/7 copy of ELCD with the EF 3.1 method (original stays untouched)"
 # The copy only counts as done once the import is verified (marker file).

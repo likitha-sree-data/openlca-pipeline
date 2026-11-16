@@ -1,6 +1,7 @@
 import java.io.File;
 
 import org.openlca.core.database.Derby;
+import org.openlca.core.database.upgrades.Upgrades;
 import org.openlca.core.io.ImportLog;
 import org.openlca.ilcd.io.DataStore;
 import org.openlca.ilcd.io.FileStore;
@@ -35,7 +36,7 @@ public class OlcaTool {
           fail("database folder already exists: " + target);
         Derby.unzip(target, new File(args[1]));  // (target folder, zolca file)
         // opening the database runs any needed schema upgrade
-        try (var db = new Derby(target)) {
+        try (var db = openUpgraded(target)) {
           System.out.println("restored " + db.getName() + ", schema version " + db.getVersion());
         }
       }
@@ -43,7 +44,7 @@ public class OlcaTool {
         requireFile(args[1]);
         var src = new File(args[1]);
         DataStore store = src.isDirectory() ? new FileStore(src) : new ZipStore(src);
-        try (var db = new Derby(new File(dbs, args[2])); store) {
+        try (var db = openUpgraded(new File(dbs, args[2])); store) {
           var imp = Import.of(store, db).withAllFlows(true);
           imp.log().listen(m -> {
             if (m.state() == ImportLog.State.ERROR || m.state() == ImportLog.State.WARNING)
@@ -76,6 +77,22 @@ public class OlcaTool {
       }
       default -> fail("unknown command " + args[0]);
     }
+  }
+
+  /**
+   * Opens a database and brings an old schema up to date, as the IPC server
+   * does on start. Writing into an old schema (e.g. the 2022 ELCD backup,
+   * version 9) fails with errors such as "Column 'LIBRARY' is not in any table".
+   */
+  static Derby openUpgraded(File dir) {
+    var db = new Derby(dir);
+    int before = db.getVersion();
+    if (before < org.openlca.core.database.IDatabase.CURRENT_VERSION) {
+      Upgrades.on(db);
+      System.out.println("upgraded database schema from version " + before
+          + " to " + db.getVersion());
+    }
+    return db;
   }
 
   static void requireFile(String path) {
