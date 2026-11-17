@@ -73,11 +73,11 @@ export async function OrganizationView({ id, row }: { id: number; row: Row }) {
 
       <div className="stack">
         {dupes.length > 0 && (
-          <section className="card" style={{ marginTop: 0, borderColor: '#e7c690', background: 'var(--accent-soft)' }} aria-labelledby="dup">
+          <section className="card" style={{ marginTop: 0, borderColor: '#f6c9a8', background: 'var(--accent-soft)' }} aria-labelledby="dup">
             <h2 id="dup">May be listed twice</h2>
             <p className="small" style={{ margin: '6px 0 10px' }}>Another group has the same name. If it is the same group, merge it into this one so nobody is split across two records.</p>
             {dupes.map((d) => (
-              <div key={d.id} style={{ padding: '10px 0', borderTop: '1px solid #f0d9b3' }}>
+              <div key={d.id} style={{ padding: '10px 0', borderTop: '1px solid #f9d9c0' }}>
                 <Link className="link" href={`/ops/organizations/${d.id}`}><b>{d.name}</b></Link>
                 <div className="small muted">{[d.county, d.state].filter(Boolean).join(', ') || 'No place'} · {d.projects} projects · {d.people} people · {d.requests} requests</div>
                 <details style={{ marginTop: 8 }}><summary className="btn sm" style={{ display: 'inline-flex', cursor: 'pointer' }}>Merge it into this group…</summary><div style={{ marginTop: 10 }}><MergeForm intoId={id} fromId={d.id} fromName={d.name} /></div></details>

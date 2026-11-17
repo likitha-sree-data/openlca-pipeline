@@ -14,8 +14,8 @@ export default function MiniMap({ lat, lng, precision }: { lat: number; lng: num
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
       map.on('load', () => {
         map.addSource('pt', { type: 'geojson', data: { type: 'Point', coordinates: [lng, lat] } as GeoJSON.Point });
-        if (precision && precision !== 'parcel') map.addLayer({ id: 'halo', type: 'circle', source: 'pt', paint: { 'circle-radius': precision === 'county' ? 60 : precision === 'community' ? 40 : 26, 'circle-color': '#2f8559', 'circle-opacity': 0.18 } });
-        map.addLayer({ id: 'dot', type: 'circle', source: 'pt', paint: { 'circle-radius': 6, 'circle-color': '#14583b', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
+        if (precision && precision !== 'parcel') map.addLayer({ id: 'halo', type: 'circle', source: 'pt', paint: { 'circle-radius': precision === 'county' ? 60 : precision === 'community' ? 40 : 26, 'circle-color': '#3b68a8', 'circle-opacity': 0.18 } });
+        map.addLayer({ id: 'dot', type: 'circle', source: 'pt', paint: { 'circle-radius': 6, 'circle-color': '#14325c', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
       });
       map.on('error', () => setErr(true));
       return () => map.remove();

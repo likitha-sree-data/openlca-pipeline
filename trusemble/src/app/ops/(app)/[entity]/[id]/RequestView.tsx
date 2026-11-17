@@ -101,7 +101,7 @@ export async function RequestView({ id, users }: { id: number; users: [string, s
           </section>
 
           {introLog && (
-            <section className="card" style={{ marginTop: 0, borderColor: '#b9dcc9', background: 'var(--ok-soft)' }} aria-labelledby="introdone">
+            <section className="card" style={{ marginTop: 0, borderColor: '#b4e0c8', background: 'var(--ok-soft)' }} aria-labelledby="introdone">
               <h2 id="introdone">Introduction made</h2>
               <p style={{ margin: '8px 0 4px' }}>{introLog.body.replace('Introduction made: ', '')}</p>
               <p className="small muted">{fmtDateTime(introLog.created_at)}{introLog.user ? ` · ${introLog.user}` : ''}. Check in on {r.next_action_date ? fmtDate(r.next_action_date) : 'it soon'} to see how it went.</p>

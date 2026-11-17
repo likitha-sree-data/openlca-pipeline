@@ -34,7 +34,7 @@ export async function ContactView({ id, row, users }: { id: number; row: Row; us
           </dl>
         </section>
 
-        <section className="card" style={{ marginTop: 0, borderColor: dnc ? '#e6c3bf' : undefined, background: dnc ? 'var(--danger-soft)' : undefined }} aria-labelledby="reach">
+        <section className="card" style={{ marginTop: 0, borderColor: dnc ? '#f3c6c0' : undefined, background: dnc ? 'var(--danger-soft)' : undefined }} aria-labelledby="reach">
           <h2 id="reach">Reach them</h2>
           {dnc ? (
             <div className="stack" style={{ marginTop: 8 }}>

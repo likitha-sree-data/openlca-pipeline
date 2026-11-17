@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import '@fontsource-variable/inter';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
   description: 'A sourced record of wildfire mitigation across the US: the projects, the money that paid for them, and the high-risk places nobody has funded yet.',
   openGraph: { title: 'TruSemble', description: 'See where wildfire money goes, and where it does not.', type: 'website' },
 };
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#fbfbf8' };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#f6f8fb' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

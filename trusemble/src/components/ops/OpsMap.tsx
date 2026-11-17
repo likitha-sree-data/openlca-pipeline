@@ -30,10 +30,10 @@ export default function OpsMap({ layers }: { layers: string[] }) {
     m.on('error', () => { if (!ready.current) setErr('Base map tiles could not be loaded.'); });
     m.on('load', () => {
       m.addSource('recs', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true, clusterRadius: 40, clusterMaxZoom: 9 });
-      m.addLayer({ id: 'clusters', type: 'circle', source: 'recs', filter: ['has', 'point_count'], paint: { 'circle-color': '#3b5f86', 'circle-radius': ['step', ['get', 'point_count'], 14, 30, 18, 100, 24], 'circle-opacity': 0.9 } });
+      m.addLayer({ id: 'clusters', type: 'circle', source: 'recs', filter: ['has', 'point_count'], paint: { 'circle-color': '#3b68a8', 'circle-radius': ['step', ['get', 'point_count'], 14, 30, 18, 100, 24], 'circle-opacity': 0.9 } });
       m.addLayer({ id: 'cluster-n', type: 'symbol', source: 'recs', filter: ['has', 'point_count'], layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 12 }, paint: { 'text-color': '#fff' } });
       // hollow markers are private (not published)
-      m.addLayer({ id: 'pts', type: 'circle', source: 'recs', filter: ['!', ['has', 'point_count']], paint: { 'circle-radius': 6, 'circle-color': ['case', ['==', ['get', 'published'], 1], ['case', ['==', ['get', 'kind'], 'Project'], '#14583b', '#2c7bb6'], '#ffffff'], 'circle-stroke-color': ['case', ['==', ['get', 'kind'], 'Project'], '#14583b', '#2c7bb6'], 'circle-stroke-width': 2 } });
+      m.addLayer({ id: 'pts', type: 'circle', source: 'recs', filter: ['!', ['has', 'point_count']], paint: { 'circle-radius': 6, 'circle-color': ['case', ['==', ['get', 'published'], 1], ['case', ['==', ['get', 'kind'], 'Project'], '#14325c', '#c2410c'], '#ffffff'], 'circle-stroke-color': ['case', ['==', ['get', 'kind'], 'Project'], '#14325c', '#c2410c'], 'circle-stroke-width': 2 } });
       m.on('click', 'clusters', (e) => { const f = e.features?.[0]; if (f) m.easeTo({ center: (f.geometry as GeoJSON.Point).coordinates as [number, number], zoom: m.getZoom() + 2 }); });
       m.on('click', 'pts', (e) => {
         const p = e.features?.[0]?.properties as Record<string, string> | undefined;
@@ -59,9 +59,9 @@ export default function OpsMap({ layers }: { layers: string[] }) {
       {err && <div className="map-fallback">{err}</div>}
       <div className="map-legend">
         <h4>Marker</h4>
-        <p className="tiny"><i className="sw" style={{ background: '#14583b', width: 12, height: 12 }} /> Project, published</p>
-        <p className="tiny"><i className="sw" style={{ background: '#2c7bb6', width: 12, height: 12 }} /> Organization, published</p>
-        <p className="tiny"><i className="sw" style={{ border: '2px solid #14583b', background: '#fff', width: 12, height: 12 }} /> Hollow: not published</p>
+        <p className="tiny"><i className="sw" style={{ background: '#14325c', width: 12, height: 12 }} /> Project, published</p>
+        <p className="tiny"><i className="sw" style={{ background: '#c2410c', width: 12, height: 12 }} /> Organization, published</p>
+        <p className="tiny"><i className="sw" style={{ border: '2px solid #14325c', background: '#fff', width: 12, height: 12 }} /> Hollow: not published</p>
       </div>
     </div>
   );

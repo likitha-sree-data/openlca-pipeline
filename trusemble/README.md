@@ -12,7 +12,7 @@ Built from screenshots of the existing operations app and public site. See [What
 
 ## Quick start
 
-Needs Node 22.13 or later (the database is Node's built-in SQLite, so there is nothing else to install).
+Needs Node 22.13 or later. With no `DATABASE_URL` set, the app uses an embedded Postgres kept in `./data/pglite`, so there is nothing else to install. Only one process can use it at a time, so stop the dev server before seeding.
 
 ```bash
 npm install
@@ -97,7 +97,8 @@ BASE=http://localhost:3000 npm run test:e2e     # real browser: forms, login, im
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_PATH` | SQLite file, default `./data/trusemble.db` |
+| `DATABASE_URL` | hosted Postgres connection string (Neon, Supabase, RDS, any Postgres 13+). Add `?sslmode=require` if the host asks for it. Leave empty for local work (embedded Postgres) |
+| `ALLOW_EMBEDDED_DB` | set to `1` to let a production build use the embedded database (demos only) |
 | `SESSION_SECRET` | 16+ characters, required in production |
 | `SEED_PASSWORD` | password for seeded operators |
 | `PUBLIC_INCLUDE_DEMO` | `true` shows demo rows on the public site |
@@ -112,16 +113,18 @@ BASE=http://localhost:3000 npm run test:e2e     # real browser: forms, login, im
 
 ## Deploying
 
-The database is a SQLite file, so the host needs a **persistent disk** and a single running instance. A serverless host with an ephemeral filesystem (including Vercel) will lose data.
+The app keeps everything in Postgres, including small uploaded files, so it runs on any host, serverless ones such as Vercel included. Nothing is written to disk.
+
+1. Create a Postgres database with any provider and copy its connection string.
+2. Set `DATABASE_URL` and `SESSION_SECRET` (16+ characters) on the host. In production the app refuses to start without `DATABASE_URL`.
+3. From your own machine, point the same `DATABASE_URL` at the scripts, once: `npm run db:seed` (or `npm run user:create` for real operators only), then `npm run ingest -- all`.
 
 ```bash
 docker build -t trusemble .
-docker run -p 3000:3000 -v trusemble-data:/data -e SESSION_SECRET=... -e SEED_PASSWORD=... trusemble
-docker exec <container> npx tsx scripts/seed.ts        # first run only
-docker exec <container> npx tsx scripts/ingest.ts all
+docker run -p 3000:3000 -e DATABASE_URL=postgres://... -e SESSION_SECRET=... trusemble
 ```
 
-Back up the `/data` volume (it holds the database and uploaded spreadsheets).
+The tables are created on first start. Back up with your provider's snapshots, or `pg_dump`. Tests can run against a real server with `TEST_DATABASE_URL=postgres://... npm run test:pg`.
 
 ## What is and is not verified
 

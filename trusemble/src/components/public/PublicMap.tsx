@@ -25,8 +25,8 @@ export type MapProps = {
 const STYLE = process.env.NEXT_PUBLIC_MAP_STYLE || 'https://tiles.openfreemap.org/styles/positron';
 // ?basemap=blank draws the data layers on a plain background: no tile requests, handy offline and for print.
 const styleUrl = () => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('basemap') === 'blank' ? '/blank-style.json' : STYLE);
-const STAGE_COLOR: Record<string, string> = { seeking_funding: '#c8412f', funded: '#2c7bb6', in_progress: '#2f8559', planning: '#8a6bbf', complete: '#14583b' };
-const ORG_COLOR: Record<string, string> = { recipients: '#2f8559', communities: '#e0933a', agencies: '#3b6fb0', partners: '#7a52a8' };
+const STAGE_COLOR: Record<string, string> = { seeking_funding: '#c2410c', funded: '#1d5fa8', in_progress: '#0e8a6b', planning: '#7c5cbf', complete: '#14325c' };
+const ORG_COLOR: Record<string, string> = { recipients: '#0e8a6b', communities: '#d99a1b', agencies: '#1d5fa8', partners: '#7c5cbf' };
 const ORG_LAYERS = ['recipients', 'communities', 'agencies', 'partners'] as const;
 const COUNTY_LAYERS = ['counties', 'risk', 'gap'] as const;
 const stageLabel = (s: string, stages: [string, string][]) => stages.find((x) => x[0] === s)?.[1] ?? s;
@@ -122,10 +122,10 @@ export default function PublicMap(props: MapProps) {
     map.on('load', () => {
       const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
       for (const id of ['counties', 'grid', 'points', 'orgs']) map.addSource(id, { type: 'geojson', data: empty, promoteId: id === 'counties' ? 'fips' : undefined });
-      map.addLayer({ id: 'counties-fill', type: 'fill', source: 'counties', filter: ['==', ['geometry-type'], 'Polygon'], layout: { visibility: 'none' }, paint: { 'fill-color': '#f2f5f2', 'fill-opacity': 0.8 } });
+      map.addLayer({ id: 'counties-fill', type: 'fill', source: 'counties', filter: ['==', ['geometry-type'], 'Polygon'], layout: { visibility: 'none' }, paint: { 'fill-color': '#eef2f7', 'fill-opacity': 0.8 } });
       map.addLayer({ id: 'counties-line', type: 'line', source: 'counties', filter: ['==', ['geometry-type'], 'Polygon'], layout: { visibility: 'none' }, paint: { 'line-color': '#ffffff', 'line-width': 0.4 } });
-      map.addLayer({ id: 'counties-dot', type: 'circle', source: 'counties', filter: ['==', ['geometry-type'], 'Point'], layout: { visibility: 'none' }, paint: { 'circle-radius': 9, 'circle-color': '#f2f5f2', 'circle-opacity': 0.85, 'circle-stroke-color': '#fff', 'circle-stroke-width': 1 } });
-      map.addLayer({ id: 'grid-fill', type: 'fill', source: 'grid', paint: { 'fill-color': ['match', ['get', 'bucket'], 1, '#d6e8dd', 3, '#a8d0b9', 10, '#6cae8a', 30, '#2e8458', 100, '#14583b', '#d6e8dd'], 'fill-opacity': 0.92 } });
+      map.addLayer({ id: 'counties-dot', type: 'circle', source: 'counties', filter: ['==', ['geometry-type'], 'Point'], layout: { visibility: 'none' }, paint: { 'circle-radius': 9, 'circle-color': '#eef2f7', 'circle-opacity': 0.85, 'circle-stroke-color': '#fff', 'circle-stroke-width': 1 } });
+      map.addLayer({ id: 'grid-fill', type: 'fill', source: 'grid', paint: { 'fill-color': ['match', ['get', 'bucket'], 1, '#dbe6f4', 3, '#a9c3e4', 10, '#6f98cf', 30, '#3b68a8', 100, '#14325c', '#dbe6f4'], 'fill-opacity': 0.92 } });
       map.addLayer({ id: 'points-dot', type: 'circle', source: 'points', paint: { 'circle-radius': 6, 'circle-color': ['match', ['get', 'stage'], 'seeking_funding', STAGE_COLOR.seeking_funding, 'funded', STAGE_COLOR.funded, 'in_progress', STAGE_COLOR.in_progress, 'planning', STAGE_COLOR.planning, STAGE_COLOR.complete], 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 } });
       map.addLayer({ id: 'orgs-dot', type: 'circle', source: 'orgs', paint: { 'circle-radius': 5, 'circle-color': ['match', ['get', 'layer'], 'recipients', ORG_COLOR.recipients, 'communities', ORG_COLOR.communities, 'agencies', ORG_COLOR.agencies, ORG_COLOR.partners], 'circle-stroke-color': '#fff', 'circle-stroke-width': 1 } });
 
@@ -178,9 +178,9 @@ export default function PublicMap(props: MapProps) {
       if (counties) (map.getSource('counties') as maplibregl.GeoJSONSource).setData(counties.geojson);
       const gap = layers.includes('gap');
       const risk = layers.includes('risk');
-      const riskColor: maplibregl.ExpressionSpecification = ['interpolate', ['linear'], ['coalesce', ['get', 'risk'], 0], 0, '#f1f5f1', 50, '#8fbba4', 100, '#1c4d3c'];
-      const gapColor: maplibregl.ExpressionSpecification = ['case', ['==', ['get', 'gap'], 1], '#c8412f', ['>', ['get', 'awards'], 0], '#b9dcc9', '#eef2ee'];
-      const color = gap ? gapColor : risk ? riskColor : '#eef2ee';
+      const riskColor: maplibregl.ExpressionSpecification = ['interpolate', ['linear'], ['coalesce', ['get', 'risk'], 0], 0, '#eef2f7', 50, '#7fa0cc', 100, '#14325c'];
+      const gapColor: maplibregl.ExpressionSpecification = ['case', ['==', ['get', 'gap'], 1], '#c2410c', ['>', ['get', 'awards'], 0], '#b9d3ee', '#eef2f7'];
+      const color = gap ? gapColor : risk ? riskColor : '#eef2f7';
       map.setPaintProperty('counties-fill', 'fill-color', color);
       map.setPaintProperty('counties-dot', 'circle-color', color);
     };
@@ -288,7 +288,7 @@ export default function PublicMap(props: MapProps) {
             <>
               <h4>Records per square</h4>
               <div className="scale">
-                {[['1', '#d6e8dd'], ['3', '#a8d0b9'], ['10', '#6cae8a'], ['30', '#2e8458'], ['100+', '#14583b']].map(([l, c]) => (
+                {[['1', '#dbe6f4'], ['3', '#a9c3e4'], ['10', '#6f98cf'], ['30', '#3b68a8'], ['100+', '#14325c']].map(([l, c]) => (
                   <span key={l} className="tiny" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><i className="sw" style={{ background: c }} />{l}</span>
                 ))}
               </div>
@@ -298,8 +298,8 @@ export default function PublicMap(props: MapProps) {
           {gapOn && (
             <div style={{ marginTop: layers.includes('projects') ? 8 : 0 }}>
               <h4>Funding gap</h4>
-              <p className="tiny"><i className="sw" style={{ background: '#c8412f', width: 12, height: 12 }} /> Top-quarter risk, no award on record</p>
-              <p className="tiny"><i className="sw" style={{ background: '#b9dcc9', width: 12, height: 12 }} /> At least one wildfire award</p>
+              <p className="tiny"><i className="sw" style={{ background: '#c2410c', width: 12, height: 12 }} /> Top-quarter risk, no award on record</p>
+              <p className="tiny"><i className="sw" style={{ background: '#b9d3ee', width: 12, height: 12 }} /> At least one wildfire award</p>
               <p className="tiny muted">County-level awards from USAspending and FEMA. Statewide grants are not placed in a county.{counties ? ` ${counties.gapCount} counties in the gap.` : ''}</p>
             </div>
           )}

@@ -27,9 +27,9 @@ export default function CoverageMap() {
     const m = map.current;
     if (!m || !ready.current) return;
     const colour: maplibregl.ExpressionSpecification =
-      id === 'risk' ? ['interpolate', ['linear'], ['coalesce', ['get', 'risk'], 0], 0, '#eef2ee', 100, '#1b4a3a']
-      : id === 'gap' ? ['case', ['==', ['get', 'gap'], 1], '#c8412f', ['>', ['get', 'awards'], 0], '#9ccbb1', '#eef2ee']
-      : ['interpolate', ['linear'], ['min', 1, ['/', ['coalesce', ['get', id === 'requested' ? 'requested' : id === 'firewise' ? 'firewise' : id], 0], MAX[id]]], 0, '#eef2ee', 1, '#1b4a3a'];
+      id === 'risk' ? ['interpolate', ['linear'], ['coalesce', ['get', 'risk'], 0], 0, '#eef2f7', 100, '#14325c']
+      : id === 'gap' ? ['case', ['==', ['get', 'gap'], 1], '#c2410c', ['>', ['get', 'awards'], 0], '#b9d3ee', '#eef2f7']
+      : ['interpolate', ['linear'], ['min', 1, ['/', ['coalesce', ['get', id === 'requested' ? 'requested' : id === 'firewise' ? 'firewise' : id], 0], MAX[id]]], 0, '#eef2f7', 1, '#14325c'];
     m.setPaintProperty('fill', 'fill-color', colour);
     m.setPaintProperty('dot', 'circle-color', colour);
   };
@@ -43,8 +43,8 @@ export default function CoverageMap() {
     map.current = m;
     m.on('load', async () => {
       m.addSource('c', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, promoteId: 'fips' });
-      m.addLayer({ id: 'fill', type: 'fill', source: 'c', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#eef2ee', 'fill-outline-color': '#ffffff' } });
-      m.addLayer({ id: 'dot', type: 'circle', source: 'c', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 8, 'circle-color': '#eef2ee', 'circle-stroke-color': '#c9d3cc', 'circle-stroke-width': 1, 'circle-opacity': 0.9 } });
+      m.addLayer({ id: 'fill', type: 'fill', source: 'c', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#eef2f7', 'fill-outline-color': '#ffffff' } });
+      m.addLayer({ id: 'dot', type: 'circle', source: 'c', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 8, 'circle-color': '#eef2f7', 'circle-stroke-color': '#c9d2de', 'circle-stroke-width': 1, 'circle-opacity': 0.9 } });
       const over = (e: maplibregl.MapLayerMouseEvent) => {
         const p = e.features?.[0]?.properties as Record<string, string | number> | undefined;
         if (p) setHover(`${p.name}${p.state ? ', ' + p.state : ''}: risk ${p.risk ?? 'n/a'} · ${p.awards} awards · $${Number(p.committed).toLocaleString('en-US')} committed`);
