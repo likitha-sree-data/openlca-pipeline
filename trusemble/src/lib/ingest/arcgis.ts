@@ -58,12 +58,12 @@ export const nfpaFirewise: Fetcher = {
   description: 'Site names, county, city, point, resident count and total investment as published by NFPA. Every state.',
   async run(ctx) {
     for await (const feats of arcgisPages(ctx, this.url)) {
-      tx(() => {
+      await tx(async () => {
         for (const f of feats) {
           const name = pickField(f.properties, FIREWISE.name);
           if (!name) { ctx.skip('no site name found in the layer fields'); continue; }
           const c = centroid(f.geometry);
-          const r = upsertOrganization(ctx.sourceId, String(f.id ?? f.properties.OBJECTID ?? name), {
+          const r = await upsertOrganization(ctx.sourceId, String(f.id ?? f.properties.OBJECTID ?? name), {
             name: String(name), type: 'firewise_community', county: strOrNull(pickField(f.properties, FIREWISE.county)), state: stateCode(pickField(f.properties, FIREWISE.state)),
             city: strOrNull(pickField(f.properties, FIREWISE.city)), lat: c?.lat, lng: c?.lng, precision: 'community',
           });
@@ -89,7 +89,7 @@ export const odfFuels: Fetcher = {
   description: 'Treatments with a recorded status only (Completed, Planned, Initiated); rows marked Unknown are left out. Names are built from treatment type, unit and year; landowner and staff names in the layer are never imported.',
   async run(ctx) {
     for await (const feats of arcgisPages(ctx, this.url)) {
-      tx(() => {
+      await tx(async () => {
         for (const f of feats) {
           const status = String(pickField(f.properties, ODF.status) ?? '').toLowerCase();
           const stage = ODF_STAGE[status];
@@ -99,7 +99,7 @@ export const odfFuels: Fetcher = {
           const unit = pickField(f.properties, ODF.unit);
           const year = pickField(f.properties, ODF.year);
           const name = [type, unit, year].filter(Boolean).join(' · '); // never a landowner or staff name
-          const r = upsertProject(ctx.sourceId, String(f.id ?? f.properties.OBJECTID ?? name), {
+          const r = await upsertProject(ctx.sourceId, String(f.id ?? f.properties.OBJECTID ?? name), {
             name, stage, category: 'fuels_reduction', state: 'OR', county: strOrNull(pickField(f.properties, ODF.county)), lat: c?.lat, lng: c?.lng, precision: 'area_centre', acres: num(pickField(f.properties, ODF.acres)),
           });
           ctx.count(r.outcome);
@@ -139,9 +139,9 @@ export const fsFacts: Fetcher = {
     }
     const entries = [...groups.entries()].slice(0, ctx.limit || undefined);
     for (let i = 0; i < entries.length; i += 500) {
-      tx(() => {
+      await tx(async () => {
         for (const [id, g] of entries.slice(i, i + 500)) {
-          const r = upsertProject(ctx.sourceId, id, { name: g.name, stage: 'complete', category: 'fuels_reduction', state: g.state, county: g.county, lat: g.lat, lng: g.lng, precision: 'area_centre', acres: Math.round(g.acres * 10) / 10 });
+          const r = await upsertProject(ctx.sourceId, id, { name: g.name, stage: 'complete', category: 'fuels_reduction', state: g.state, county: g.county, lat: g.lat, lng: g.lng, precision: 'area_centre', acres: Math.round(g.acres * 10) / 10 });
           ctx.count(r.outcome);
         }
       });

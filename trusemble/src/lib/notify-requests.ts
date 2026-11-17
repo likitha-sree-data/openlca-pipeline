@@ -4,7 +4,7 @@ import { sendAlert } from './notify';
 
 /** Tell the team a request just arrived. Names the group and the project, never a person's contact details. */
 export async function notifyNewRequest(ref: string) {
-  const r = get<{ id: number; kind: string; from_name: string; amount_text: string | null; project: string | null }>(
+  const r = await get<{ id: number; kind: string; from_name: string; amount_text: string | null; project: string | null }>(
     `SELECT r.id, r.kind, r.from_name, r.amount_text, p.name project FROM requests r LEFT JOIN projects p ON p.id = r.project_id WHERE r.ref = ?`, ref,
   );
   if (!r) return;

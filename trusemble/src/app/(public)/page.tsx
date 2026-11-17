@@ -14,12 +14,12 @@ const FAQ = [
   ['Who decides when an introduction is made?', 'Both sides. TruSemble introduces a project to a funder or a crew only after each says yes.'],
 ];
 
-export default function Home() {
-  const h = headline();
-  const f = homeFacts();
-  const st = story();
-  const counts = layerCounts();
-  const opts = projectFilterOptions();
+export default async function Home() {
+  const h = await headline();
+  const f = await homeFacts();
+  const st = await story();
+  const counts = await layerCounts();
+  const opts = await projectFilterOptions();
   return (
     <>
       <section className="container hero">

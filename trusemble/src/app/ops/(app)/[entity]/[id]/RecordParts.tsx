@@ -38,9 +38,9 @@ export function PublishCard({ table, id, row }: { table: 'projects' | 'programs'
 }
 
 /** Has a person compared this with its source? */
-export function CheckCard({ slug, id, row }: { slug: string; id: number; row: Row }) {
-  const verifier = row.verified_by ? get<{ name: string }>('SELECT name FROM users WHERE id = ?', Number(row.verified_by))?.name : null;
-  const source = row.source_id ? get<{ name: string; url: string | null }>('SELECT name, url FROM sources WHERE id = ?', Number(row.source_id)) : undefined;
+export async function CheckCard({ slug, id, row }: { slug: string; id: number; row: Row }) {
+  const verifier = row.verified_by ? (await get<{ name: string }>('SELECT name FROM users WHERE id = ?', Number(row.verified_by)))?.name : null;
+  const source = row.source_id ? await get<{ name: string; url: string | null }>('SELECT name, url FROM sources WHERE id = ?', Number(row.source_id)) : undefined;
   const link = safeHref(source?.url ?? null);
   return (
     <section className="card" style={{ marginTop: 0 }} aria-labelledby="chk">
@@ -65,9 +65,9 @@ export function CheckCard({ slug, id, row }: { slug: string; id: number; row: Ro
 }
 
 /** Notes and everything that has happened to this record. */
-export function HistoryCard({ slug, entity, id }: { slug: string; entity: string; id: number }) {
-  const activity = all<{ id: number; kind: string; body: string; created_at: string; user: string | null }>(
-    `SELECT a.id, a.kind, a.body, a.created_at, u.name user FROM activities a LEFT JOIN users u ON u.id = a.user_id WHERE a.entity = ? AND a.entity_id = ? ORDER BY a.id DESC LIMIT 40`, entity, id,
+export async function HistoryCard({ slug, entity, id }: { slug: string; entity: string; id: number }) {
+  const activity = await all<{ id: number; kind: string; body: string; created_at: string; user: string | null }>(
+    `SELECT a.id, a.kind, a.body, a.created_at, u.name AS "user" FROM activities a LEFT JOIN users u ON u.id = a.user_id WHERE a.entity = ? AND a.entity_id = ? ORDER BY a.id DESC LIMIT 40`, entity, id,
   );
   return (
     <section className="card" style={{ marginTop: 0 }} aria-labelledby="hist">

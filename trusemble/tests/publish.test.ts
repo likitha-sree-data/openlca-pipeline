@@ -42,44 +42,44 @@ describe('program readiness', () => {
 });
 
 describe('showing and hiding', () => {
-  beforeEach(() => { freshDb(); run(`INSERT INTO users (id, name, email, initials) VALUES (1, 'Op', 'op@x.org', 'OP')`); });
+  beforeEach(async () => { await freshDb(); await run(`INSERT INTO users (id, name, email, initials) VALUES (1, 'Op', 'op@x.org', 'OP')`); });
 
-  it('refuses to show a project that is not ready, and says what is missing', () => {
-    const id = insertRow(ENTITIES.projects, { name: 'Ridge break', stage: 'planning', category: 'fuels_reduction', published: 0 }, 1);
-    const r = setPublished('projects', id, true, 1);
+  it('refuses to show a project that is not ready, and says what is missing', async () => {
+    const id = await insertRow(ENTITIES.projects, { name: 'Ridge break', stage: 'planning', category: 'fuels_reduction', published: 0 }, 1);
+    const r = await setPublished('projects', id, true, 1);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/Add the county and state\..*Write what the work is/);
-    expect(get<{ published: number }>('SELECT published FROM projects WHERE id = ?', id)!.published).toBe(0);
+    expect((await get<{ published: number }>('SELECT published FROM projects WHERE id = ?', id))!.published).toBe(0);
   });
 
-  it('shows a ready project, hides it again, and keeps a record of both', () => {
-    const id = insertRow(ENTITIES.projects, { name: 'Ridge break', stage: 'planning', category: 'fuels_reduction', county: 'Deschutes County', state: 'OR', description: 'Thin forty acres around the community.', published: 0 }, 1);
-    expect(setPublished('projects', id, true, 1)).toEqual({ ok: true });
-    expect(get<{ published: number }>('SELECT published FROM projects WHERE id = ?', id)!.published).toBe(1);
-    expect(setPublished('projects', id, false, 1)).toEqual({ ok: true });
-    expect(get<{ published: number }>('SELECT published FROM projects WHERE id = ?', id)!.published).toBe(0);
-    expect(get<{ n: number }>(`SELECT COUNT(*) n FROM activities WHERE entity = 'projects' AND entity_id = ? AND body LIKE '%website%'`, id)!.n).toBe(2);
+  it('shows a ready project, hides it again, and keeps a record of both', async () => {
+    const id = await insertRow(ENTITIES.projects, { name: 'Ridge break', stage: 'planning', category: 'fuels_reduction', county: 'Deschutes County', state: 'OR', description: 'Thin forty acres around the community.', published: 0 }, 1);
+    expect(await setPublished('projects', id, true, 1)).toEqual({ ok: true });
+    expect((await get<{ published: number }>('SELECT published FROM projects WHERE id = ?', id))!.published).toBe(1);
+    expect(await setPublished('projects', id, false, 1)).toEqual({ ok: true });
+    expect((await get<{ published: number }>('SELECT published FROM projects WHERE id = ?', id))!.published).toBe(0);
+    expect((await get<{ n: number }>(`SELECT COUNT(*) n FROM activities WHERE entity = 'projects' AND entity_id = ? AND body ILIKE '%website%'`, id))!.n).toBe(2);
   });
 
-  it('hiding is always allowed, even for something that would not pass today', () => {
-    run(`INSERT INTO projects (id, name, name_key, published) VALUES (9, 'Old', 'old', 1)`);
-    expect(setPublished('projects', 9, false, 1)).toEqual({ ok: true });
+  it('hiding is always allowed, even for something that would not pass today', async () => {
+    await run(`INSERT INTO projects (id, name, name_key, published) VALUES (9, 'Old', 'old', 1)`);
+    expect(await setPublished('projects', 9, false, 1)).toEqual({ ok: true });
   });
 
-  it('will not show an archived record', () => {
-    const id = insertRow(ENTITIES.projects, { name: 'P', stage: 'planning', category: 'fuels_reduction', county: 'X', state: 'OR', description: 'Thin forty acres around the community.' }, 1);
-    run('UPDATE projects SET archived = 1 WHERE id = ?', id);
-    expect(setPublished('projects', id, true, 1).ok).toBe(false);
+  it('will not show an archived record', async () => {
+    const id = await insertRow(ENTITIES.projects, { name: 'P', stage: 'planning', category: 'fuels_reduction', county: 'X', state: 'OR', description: 'Thin forty acres around the community.' }, 1);
+    await run('UPDATE projects SET archived = 1 WHERE id = ?', id);
+    expect((await setPublished('projects', id, true, 1)).ok).toBe(false);
   });
 
-  it('programs: needs the official link, and "looked at" resets the clock', () => {
-    const id = insertRow(ENTITIES.programs, { name: 'Grant', type: 'grant', scope: 'national', run_by: 'USDA', eligibility: 'Communities at risk of wildfire, including HOAs.' }, 1);
-    expect(setPublished('programs', id, true, 1).ok).toBe(false);
-    run(`UPDATE programs SET url = 'https://www.fs.usda.gov/x' WHERE id = ?`, id);
-    expect(setPublished('programs', id, true, 1)).toEqual({ ok: true });
-    expect(markLooked(id, 1, '2026-11-16')).toBe(true);
-    expect(get<{ checked_at: string }>('SELECT checked_at FROM programs WHERE id = ?', id)!.checked_at).toBe('2026-11-16');
-    expect(markLooked(9999, 1)).toBe(false);
+  it('programs: needs the official link, and "looked at" resets the clock', async () => {
+    const id = await insertRow(ENTITIES.programs, { name: 'Grant', type: 'grant', scope: 'national', run_by: 'USDA', eligibility: 'Communities at risk of wildfire, including HOAs.' }, 1);
+    expect((await setPublished('programs', id, true, 1)).ok).toBe(false);
+    await run(`UPDATE programs SET url = 'https://www.fs.usda.gov/x' WHERE id = ?`, id);
+    expect(await setPublished('programs', id, true, 1)).toEqual({ ok: true });
+    expect(await markLooked(id, 1, '2026-11-16')).toBe(true);
+    expect((await get<{ checked_at: string }>('SELECT checked_at FROM programs WHERE id = ?', id))!.checked_at).toBe('2026-11-16');
+    expect(await markLooked(9999, 1)).toBe(false);
   });
 });
 
@@ -88,33 +88,33 @@ import { listRows } from '../src/lib/crud';
 import { seedDatabase } from '../src/lib/seed';
 
 describe('quick filters on the seeded data', () => {
-  beforeEach(() => { freshDb(); seedDatabase({ password: 'test-password-1' }); });
-  const count = (key: 'programs' | 'projects' | 'requests', filter: string, today = '2026-11-16') => {
+  beforeEach(async () => { await freshDb(); await seedDatabase({ password: 'test-password-1' }); });
+  const count = async (key: 'programs' | 'projects' | 'requests', filter: string, today = '2026-11-16') => {
     const q = quickFilters(key, today, 1)[filter];
-    return listRows(ENTITIES[key], { extra: q, filters: {} }).total;
+    return (await listRows(ENTITIES[key], { extra: q, filters: {} })).total;
   };
 
-  it('programs: open now, always open, closing soon, closed, hidden', () => {
-    expect(count('programs', 'open')).toBe(3); // the two Forest Service windows, plus a private foundation with a future deadline
-    expect(count('programs', 'past')).toBe(3);
-    expect(count('programs', 'soon')).toBe(0);
-    expect(count('programs', 'soon', '2027-01-10')).toBe(2); // the two Forest Service windows close Jan 26
-    expect(count('programs', 'hidden')).toBe(16); // the private funders and loans
-    expect(count('programs', 'always')).toBe(32); // 17 public and 15 private programs have no dates
-    expect(count('programs', 'open') + count('programs', 'always') + count('programs', 'past')).toBeLessThan(listRows(ENTITIES.programs, {}).total + 1);
+  it('programs: open now, always open, closing soon, closed, hidden', async () => {
+    expect(await count('programs', 'open')).toBe(3); // the two Forest Service windows, plus a private foundation with a future deadline
+    expect(await count('programs', 'past')).toBe(3);
+    expect(await count('programs', 'soon')).toBe(0);
+    expect(await count('programs', 'soon', '2027-01-10')).toBe(2); // the two Forest Service windows close Jan 26
+    expect(await count('programs', 'hidden')).toBe(16); // the private funders and loans
+    expect(await count('programs', 'always')).toBe(32); // 17 public and 15 private programs have no dates
+    expect(await count('programs', 'open') + await count('programs', 'always') + await count('programs', 'past')).toBeLessThan((await listRows(ENTITIES.programs, {})).total + 1);
   });
-  it('projects: need funding, ready to show, hidden', () => {
-    expect(count('projects', 'needs')).toBeGreaterThan(4);
-    expect(count('projects', 'ready')).toBeGreaterThanOrEqual(0);
-    expect(count('projects', 'hidden')).toBeGreaterThan(0);
-    run(`INSERT INTO projects (name, name_key, county, state, description, published) VALUES ('Ready one', 'ready one', 'X', 'OR', 'Thin forty acres around the community.', 0), ('Not ready', 'not ready', NULL, 'OR', 'Thin forty acres around the community.', 0)`);
-    const before = count('projects', 'ready');
-    run(`UPDATE projects SET published = 1 WHERE name = 'Ready one'`);
-    expect(count('projects', 'ready')).toBe(before - 1);
+  it('projects: need funding, ready to show, hidden', async () => {
+    expect(await count('projects', 'needs')).toBeGreaterThan(4);
+    expect(await count('projects', 'ready')).toBeGreaterThanOrEqual(0);
+    expect(await count('projects', 'hidden')).toBeGreaterThan(0);
+    await run(`INSERT INTO projects (name, name_key, county, state, description, published) VALUES ('Ready one', 'ready one', 'X', 'OR', 'Thin forty acres around the community.', 0), ('Not ready', 'not ready', NULL, 'OR', 'Thin forty acres around the community.', 0)`);
+    const before = await count('projects', 'ready');
+    await run(`UPDATE projects SET published = 1 WHERE name = 'Ready one'`);
+    expect(await count('projects', 'ready')).toBe(before - 1);
   });
-  it('requests: nobody yet and overdue', () => {
-    expect(count('requests', 'nobody')).toBe(32);
-    expect(count('requests', 'overdue')).toBe(0);
-    expect(count('requests', 'mine')).toBe(0);
+  it('requests: nobody yet and overdue', async () => {
+    expect(await count('requests', 'nobody')).toBe(32);
+    expect(await count('requests', 'overdue')).toBe(0);
+    expect(await count('requests', 'mine')).toBe(0);
   });
 });

@@ -31,7 +31,7 @@ export default async function NewEntity({ params, searchParams }: { params: Prom
     if (v && /^[\w\s.,@$-]{1,200}$/.test(v)) values[f.name] = v;
     if (f.type === 'ref' && f.ref && f.ref !== 'users' && values[f.name]) {
       const t = f.ref;
-      const n = get<{ n: string }>(`SELECT name n FROM ${t} WHERE id = ?`, Number(values[f.name]))?.n;
+      const n = (await get<{ n: string }>(`SELECT name n FROM ${t} WHERE id = ?`, Number(values[f.name])))?.n;
       if (n) refLabels[f.name] = n;
     }
   }
@@ -40,7 +40,7 @@ export default async function NewEntity({ params, searchParams }: { params: Prom
       <p className="small"><Link className="link" href={`/ops/${cfg.slug}`}>← {cfg.plural[0].toUpperCase() + cfg.plural.slice(1)}</Link></p>
       <PageHead title={cfg.newLabel} />
       <div className="card" style={{ marginTop: 18 }}>
-        <EntityForm fields={cfg.fields} values={values} refLabels={refLabels} userOpts={userOptions()} action={saveEntity.bind(null, cfg.slug, null)} submitLabel={`Create ${cfg.singular}`} cancelHref={`/ops/${cfg.slug}`} />
+        <EntityForm fields={cfg.fields} values={values} refLabels={refLabels} userOpts={await userOptions()} action={saveEntity.bind(null, cfg.slug, null)} submitLabel={`Create ${cfg.singular}`} cancelHref={`/ops/${cfg.slug}`} />
       </div>
     </OpsPage>
   );

@@ -27,64 +27,64 @@ describe('parseFields', () => {
 });
 
 describe('records', () => {
-  beforeEach(() => { freshDb(); run(`INSERT INTO users (id, name, email, initials) VALUES (1, 'Op', 'op@x.org', 'OP')`); });
+  beforeEach(async () => { await freshDb(); await run(`INSERT INTO users (id, name, email, initials) VALUES (1, 'Op', 'op@x.org', 'OP')`); });
 
-  it('creates requests with sequential references and logs activity', () => {
+  it('creates requests with sequential references and logs activity', async () => {
     const cfg = ENTITIES.requests;
     const y = new Date().getUTCFullYear();
-    const a = insertRow(cfg, { from_name: 'A', kind: 'client', status: 'new' }, 1);
-    const b = insertRow(cfg, { from_name: 'B', kind: 'client', status: 'new' }, 1);
-    expect(get<{ ref: string }>('SELECT ref FROM requests WHERE id = ?', a)!.ref).toBe(`TS-${y}-0001`);
-    expect(get<{ ref: string }>('SELECT ref FROM requests WHERE id = ?', b)!.ref).toBe(`TS-${y}-0002`);
-    expect(nextRef(y)).toBe(`TS-${y}-0003`);
-    expect(all('SELECT 1 FROM activities WHERE entity = ?', 'requests')).toHaveLength(2);
+    const a = await insertRow(cfg, { from_name: 'A', kind: 'client', status: 'new' }, 1);
+    const b = await insertRow(cfg, { from_name: 'B', kind: 'client', status: 'new' }, 1);
+    expect((await get<{ ref: string }>('SELECT ref FROM requests WHERE id = ?', a))!.ref).toBe(`TS-${y}-0001`);
+    expect((await get<{ ref: string }>('SELECT ref FROM requests WHERE id = ?', b))!.ref).toBe(`TS-${y}-0002`);
+    expect(await nextRef(y)).toBe(`TS-${y}-0003`);
+    expect(await all('SELECT 1 FROM activities WHERE entity = ?', 'requests')).toHaveLength(2);
   });
 
-  it('tracks status changes and only reports real edits', () => {
+  it('tracks status changes and only reports real edits', async () => {
     const cfg = ENTITIES.requests;
-    const id = insertRow(cfg, { from_name: 'A', kind: 'client', status: 'new' }, 1);
-    expect(updateRow(cfg, id, { from_name: 'A', kind: 'client', status: 'new' }, 1)).toEqual([]);
-    const changed = updateRow(cfg, id, { from_name: 'A', kind: 'client', status: 'closed' }, 1);
+    const id = await insertRow(cfg, { from_name: 'A', kind: 'client', status: 'new' }, 1);
+    expect(await updateRow(cfg, id, { from_name: 'A', kind: 'client', status: 'new' }, 1)).toEqual([]);
+    const changed = await updateRow(cfg, id, { from_name: 'A', kind: 'client', status: 'closed' }, 1);
     expect(changed).toContain('status');
-    const r = get<{ closed_at: string | null }>('SELECT closed_at FROM requests WHERE id = ?', id)!;
+    const r = (await get<{ closed_at: string | null }>('SELECT closed_at FROM requests WHERE id = ?', id))!;
     expect(r.closed_at).not.toBeNull();
-    expect(get<{ n: number }>(`SELECT COUNT(*) n FROM activities WHERE kind = 'status'`)!.n).toBe(1);
+    expect((await get<{ n: number }>(`SELECT COUNT(*) n FROM activities WHERE kind = 'status'`))!.n).toBe(1);
   });
 
-  it('derives program window and place', () => {
-    const id = insertRow(ENTITIES.programs, { name: 'Rolling grant', type: 'grant', scope: 'state', state: 'OR' }, 1);
-    const p = get<{ rolling: number; where_label: string }>('SELECT rolling, where_label FROM programs WHERE id = ?', id)!;
+  it('derives program window and place', async () => {
+    const id = await insertRow(ENTITIES.programs, { name: 'Rolling grant', type: 'grant', scope: 'state', state: 'OR' }, 1);
+    const p = (await get<{ rolling: number; where_label: string }>('SELECT rolling, where_label FROM programs WHERE id = ?', id))!;
     expect(p.rolling).toBe(1);
     expect(p.where_label).toBe('Oregon (statewide)');
   });
 
-  it('lists with search, filters and a verification split that ignores the verification filter', () => {
+  it('lists with search, filters and a verification split that ignores the verification filter', async () => {
     for (const [n, v] of [['Alpine Acres', 'unverified'], ['Alder Creek', 'verified'], ['Beech Hollow', 'demo']] as const) {
-      insertRow(ENTITIES.organizations, { name: n, type: 'firewise_community', published: 1 }, 1, { verification: v });
+      await insertRow(ENTITIES.organizations, { name: n, type: 'firewise_community', published: 1 }, 1, { verification: v });
     }
-    const all3 = listRows(ENTITIES.organizations, { q: 'al' });
+    const all3 = await listRows(ENTITIES.organizations, { q: 'al' });
     expect(all3.total).toBe(2);
-    const onlyVerified = listRows(ENTITIES.organizations, { verification: 'verified' });
+    const onlyVerified = await listRows(ENTITIES.organizations, { verification: 'verified' });
     expect(onlyVerified.total).toBe(1);
     expect(onlyVerified.counts).toEqual({ verified: 1, unverified: 1, demo: 1 });
-    expect(listRows(ENTITIES.organizations, { filters: { type: 'county' } }).total).toBe(0);
+    expect((await listRows(ENTITIES.organizations, { filters: { type: 'county' } })).total).toBe(0);
   });
 
-  it('markVerified records a review for the pilot', () => {
-    const id = insertRow(ENTITIES.organizations, { name: 'X', type: 'other' }, 1);
-    markVerified(ENTITIES.organizations, id, 1, 'corrected', 'fixed county');
-    expect(get<{ verification: string }>('SELECT verification FROM organizations WHERE id = ?', id)!.verification).toBe('verified');
-    expect(get<{ outcome: string }>('SELECT outcome FROM record_reviews')!.outcome).toBe('corrected');
+  it('markVerified records a review for the pilot', async () => {
+    const id = await insertRow(ENTITIES.organizations, { name: 'X', type: 'other' }, 1);
+    await markVerified(ENTITIES.organizations, id, 1, 'corrected', 'fixed county');
+    expect((await get<{ verification: string }>('SELECT verification FROM organizations WHERE id = ?', id))!.verification).toBe('verified');
+    expect((await get<{ outcome: string }>('SELECT outcome FROM record_reviews'))!.outcome).toBe('corrected');
   });
 });
 
 describe('db helpers', () => {
-  it('returns plain objects so rows can cross the server/client boundary', () => {
-    freshDb();
-    run(`INSERT INTO users (name, email, initials) VALUES ('A', 'a@x.org', 'A')`);
-    const row = all<{ name: string }>('SELECT name FROM users')[0];
+  it('returns plain objects so rows can cross the server/client boundary', async () => {
+    await freshDb();
+    await run(`INSERT INTO users (name, email, initials) VALUES ('A', 'a@x.org', 'A')`);
+    const row = (await all<{ name: string }>('SELECT name FROM users'))[0];
     expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
-    expect(Object.getPrototypeOf(get('SELECT * FROM users')!)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf((await get('SELECT * FROM users'))!)).toBe(Object.prototype);
   });
 });
 

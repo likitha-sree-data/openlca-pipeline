@@ -13,15 +13,15 @@ import { CheckCard, HistoryCard, PublishCard } from './RecordParts';
 type Row = Record<string, string | number | null>;
 
 /** One funding program: who can get it, when, how much, which projects could use it, and whether it is still current. */
-export function ProgramView({ id, row }: { id: number; row: Row }) {
+export async function ProgramView({ id, row }: { id: number; row: Row }) {
   const today = todayIso();
   const status = windowStatus({ window_start: row.window_start as string | null, window_end: row.window_end as string | null }, today);
   const note = deadlineNote({ window_start: row.window_start as string | null, window_end: row.window_end as string | null }, today);
   const looked = lookedNote(row.checked_at as string | null, today);
-  const contact = row.contact_id ? get<{ id: number; name: string; email: string | null; phone: string | null }>('SELECT id, name, email, phone FROM contacts WHERE id = ?', Number(row.contact_id)) : undefined;
-  const matches = all<{ id: number; status: string; reason: string; project_id: number; name: string; county: string | null; state: string | null }>(
+  const contact = row.contact_id ? await get<{ id: number; name: string; email: string | null; phone: string | null }>('SELECT id, name, email, phone FROM contacts WHERE id = ?', Number(row.contact_id)) : undefined;
+  const matches = await all<{ id: number; status: string; reason: string; project_id: number; name: string; county: string | null; state: string | null }>(
     `SELECT m.id, m.status, m.reason, p.id project_id, p.name, p.county, p.state FROM matches m JOIN projects p ON p.id = m.project_id WHERE m.program_id = ? AND m.status != 'dismissed' AND p.archived = 0 ORDER BY (m.status = 'accepted') DESC, m.score DESC LIMIT 8`, id);
-  const awards = get<{ n: number; s: number | null; r: number }>('SELECT COUNT(*) n, SUM(amount_committed) s, COUNT(DISTINCT org_id) r FROM awards WHERE program_id = ?', id);
+  const awards = await get<{ n: number; s: number | null; r: number }>('SELECT COUNT(*) n, SUM(amount_committed) s, COUNT(DISTINCT org_id) r FROM awards WHERE program_id = ?', id);
   const link = safeHref(row.url as string | null);
 
   return (

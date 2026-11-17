@@ -1,16 +1,19 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { json } from '@/lib/http';
 import { countyStats } from '@/lib/public-data';
+import { blobVersion, getBlob } from '@/lib/blobs';
 
 type Geo = { type: 'FeatureCollection'; features: { type: 'Feature'; properties: Record<string, unknown>; geometry: unknown }[] };
-let cache: { mtime: number; geo: Geo } | null = null;
+let cache: { version: string; geo: Geo } | null = null;
 
-function polygons(): Geo | null {
-  const file = path.join(process.cwd(), 'data', 'counties.geojson');
+/** County outlines live in the database. Parse them once per change, not once per request. */
+async function polygons(): Promise<Geo | null> {
+  const version = await blobVersion('counties.geojson');
+  if (!version) return null;
+  if (cache?.version === version) return cache.geo;
+  const bytes = await getBlob('counties.geojson');
+  if (!bytes) return null;
   try {
-    const st = fs.statSync(file);
-    if (!cache || cache.mtime !== st.mtimeMs) cache = { mtime: st.mtimeMs, geo: JSON.parse(fs.readFileSync(file, 'utf8')) as Geo };
+    cache = { version, geo: JSON.parse(bytes.toString('utf8')) as Geo };
     return cache.geo;
   } catch {
     return null;
@@ -18,10 +21,10 @@ function polygons(): Geo | null {
 }
 
 // County risk, awards and the funding gap. Uses real outlines when `npm run ingest -- tiger-counties` has been run, otherwise centroid markers.
-export function GET() {
-  const { counties, riskCutoff, gapCount } = countyStats();
+export async function GET() {
+  const { counties, riskCutoff, gapCount } = await countyStats();
   const byFips = new Map(counties.map((c) => [c.fips, c]));
-  const geo = polygons();
+  const geo = await polygons();
   if (geo) {
     const features = geo.features.map((f) => {
       const fips = String(f.properties.GEOID ?? f.properties.fips ?? '');

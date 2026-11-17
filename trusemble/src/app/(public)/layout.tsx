@@ -4,8 +4,8 @@ import { scalar } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
-  const demoRows = includeDemo() ? scalar<number>(`SELECT COUNT(*) FROM projects WHERE verification = 'demo'`) : 0;
+export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+  const demoRows = includeDemo() ? await scalar<number>(`SELECT COUNT(*) FROM projects WHERE verification = 'demo'`) : 0;
   return (
     <>
       <a className="skip" href="#content">Skip to content</a>

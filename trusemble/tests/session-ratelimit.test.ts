@@ -18,12 +18,12 @@ describe('session tokens', () => {
 });
 
 describe('rate limiter', () => {
-  beforeEach(() => { freshDb(); });
-  it('allows up to the limit per window then blocks, per bucket', () => {
+  beforeEach(async () => { await freshDb(); });
+  it('allows up to the limit per window then blocks, per bucket', async () => {
     const now = 1_700_000_000_000;
-    for (let i = 0; i < 3; i++) expect(allow('a', 3, 60, now)).toBe(true);
-    expect(allow('a', 3, 60, now)).toBe(false);
-    expect(allow('b', 3, 60, now)).toBe(true);
-    expect(allow('a', 3, 60, now + 61_000)).toBe(true);
+    for (let i = 0; i < 3; i++) expect(await allow('a', 3, 60, now)).toBe(true);
+    expect(await allow('a', 3, 60, now)).toBe(false);
+    expect(await allow('b', 3, 60, now)).toBe(true);
+    expect(await allow('a', 3, 60, now + 61_000)).toBe(true);
   });
 });

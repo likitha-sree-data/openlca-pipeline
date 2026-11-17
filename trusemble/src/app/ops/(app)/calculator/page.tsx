@@ -10,8 +10,8 @@ import { deleteBenchmarkAction } from '@/app/ops/actions';
 
 export const metadata: Metadata = { title: 'Calculator' };
 
-export default function OpsCalculator() {
-  const rows = all<{ id: number; name: string; cost_per_acre: number; source_url: string | null; note: string | null; verification: string }>('SELECT * FROM calculator_benchmarks ORDER BY sort, id');
+export default async function OpsCalculator() {
+  const rows = await all<{ id: number; name: string; cost_per_acre: number; source_url: string | null; note: string | null; verification: string }>('SELECT * FROM calculator_benchmarks ORDER BY sort, id');
   const r = estimate({ homes: 300, clearZoneFt: 100, sharePct: 50, grant: 75000 }, rows.map((b) => ({ name: b.name, costPerAcre: b.cost_per_acre })));
   return (
     <OpsPage section="Calculator">

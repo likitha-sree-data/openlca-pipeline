@@ -1,5 +1,4 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import { putBlob } from '../blobs';
 import { run, tx } from '../db';
 import { arcgisPages, centroid } from './arcgis';
 import { pickField, type Fetcher } from './runner';
@@ -13,7 +12,7 @@ export const tigerCounties: Fetcher = {
   async run(ctx) {
     const features: unknown[] = [];
     for await (const feats of arcgisPages(ctx, this.url, { outFields: 'GEOID,NAME,BASENAME,STATE,CENTLAT,CENTLON', pageSize: 500, extra: { maxAllowableOffset: '0.02', geometryPrecision: '3' } })) {
-      tx(() => {
+      await tx(async () => {
         for (const f of feats) {
           const fips = pickField(f.properties, ['GEOID']);
           const name = pickField(f.properties, ['BASENAME', 'NAME']);
@@ -23,8 +22,8 @@ export const tigerCounties: Fetcher = {
           const c = centroid(f.geometry);
           const lat = Number(pickField(f.properties, ['CENTLAT'])) || c?.lat || null;
           const lng = Number(pickField(f.properties, ['CENTLON'])) || c?.lng || null;
-          const existed = run(`UPDATE counties SET name = ?, state = ?, lat = ?, lng = ?, verification = 'unverified', source_id = ? WHERE fips = ?`, String(name), st, lat, lng, ctx.sourceId, String(fips)).changes;
-          if (!existed) run(`INSERT INTO counties (fips, name, state, lat, lng, verification, source_id) VALUES (?, ?, ?, ?, ?, 'unverified', ?)`, String(fips), String(name), st, lat, lng, ctx.sourceId);
+          const existed = (await run(`UPDATE counties SET name = ?, state = ?, lat = ?, lng = ?, verification = 'unverified', source_id = ? WHERE fips = ?`, String(name), st, lat, lng, ctx.sourceId, String(fips))).changes;
+          if (!existed) await run(`INSERT INTO counties (fips, name, state, lat, lng, verification, source_id) VALUES (?, ?, ?, ?, ?, 'unverified', ?)`, String(fips), String(name), st, lat, lng, ctx.sourceId);
           ctx.count(existed ? 'updated' : 'new');
           features.push({ type: 'Feature', properties: { GEOID: String(fips), NAME: String(name) }, geometry: f.geometry });
         }
@@ -32,12 +31,10 @@ export const tigerCounties: Fetcher = {
       ctx.log(`${features.length} counties read`);
     }
     if (!ctx.limit) {
-      const file = path.join(path.dirname(process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'x.db')), 'counties.geojson');
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(file, JSON.stringify({ type: 'FeatureCollection', features }));
-      ctx.log(`wrote ${features.length} outlines to ${file}`);
+      await putBlob('counties.geojson', Buffer.from(JSON.stringify({ type: 'FeatureCollection', features })));
+      ctx.log(`saved ${features.length} county outlines`);
     }
-    run(`DELETE FROM counties WHERE verification = 'demo'`);
+    await run(`DELETE FROM counties WHERE verification = 'demo'`);
   },
 };
 
@@ -48,12 +45,12 @@ export const femaNri: Fetcher = {
   description: 'US Government work, public domain. Modeled estimates: wildfire risk score (national percentile), rating and expected annual loss per county.',
   async run(ctx) {
     for await (const feats of arcgisPages(ctx, this.url, { outFields: 'STCOFIPS,COUNTY,STATEABBRV,WFIR_RISKS,WFIR_RISKR', extra: { returnGeometry: 'false' } })) {
-      tx(() => {
+      await tx(async () => {
         for (const f of feats) {
           const fips = pickField(f.properties, ['STCOFIPS']);
           const score = pickField(f.properties, ['WFIR_RISKS']);
           if (!fips || score === null) { ctx.skip('no county code or wildfire risk score (not rated)'); continue; }
-          const changed = run(`UPDATE counties SET risk_score = ?, risk_rating = ? WHERE fips = ?`, Number(score), String(pickField(f.properties, ['WFIR_RISKR']) ?? ''), String(fips)).changes;
+          const changed = (await run(`UPDATE counties SET risk_score = ?, risk_rating = ? WHERE fips = ?`, Number(score), String(pickField(f.properties, ['WFIR_RISKR']) ?? ''), String(fips))).changes;
           if (!changed) { ctx.skip('county not in the counties table (run tiger-counties first)'); continue; }
           ctx.count('updated');
         }

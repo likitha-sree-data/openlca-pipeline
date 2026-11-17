@@ -2,9 +2,9 @@ import type { NextRequest } from 'next/server';
 import { json, intParam } from '@/lib/http';
 import { listProjects } from '@/lib/public-data';
 
-export function GET(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams;
-  const res = listProjects(
+  const res = await listProjects(
     {
       q: q.get('q')?.slice(0, 80) || undefined,
       category: q.get('category') || undefined,

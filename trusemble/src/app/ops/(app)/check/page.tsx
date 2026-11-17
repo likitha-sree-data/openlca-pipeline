@@ -15,18 +15,18 @@ const NOUN: Record<string, string> = { funding: 'funding program', projects: 'pr
 export default async function CheckPage({ searchParams }: { searchParams: Promise<{ n?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
-  const queue = checkQueue(200);
-  const total = checkTotal();
+  const queue = await checkQueue(200);
+  const total = await checkTotal();
   const n = Math.min(Math.max(0, Number(sp.n) || 0), Math.max(0, queue.length - 1));
   const item = queue[n];
-  const d = item ? checkDetail(item.slug, item.id) : null;
+  const d = item ? await checkDetail(item.slug, item.id) : null;
   const href = d ? safeHref(d.link) : null;
 
   return (
     <OpsPage section="Check data">
       <h1>Check the data</h1>
       <p className="lede">Compare each record with where it came from. About a minute each. If it matches, say so. If not, fix it first.</p>
-      <p className="small muted" style={{ marginTop: 8 }}>You checked {checkedByUserToday(user.id)} today · {fmtInt(total)} waiting</p>
+      <p className="small muted" style={{ marginTop: 8 }}>You checked {await checkedByUserToday(user.id)} today · {fmtInt(total)} waiting</p>
 
       {!item || !d ? (
         <div className="card" style={{ marginTop: 20 }}>

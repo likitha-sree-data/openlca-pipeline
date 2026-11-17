@@ -91,28 +91,28 @@ export function toIsoDate(s: string): string | null {
 
 type Existing = { id: number; verification: string; [k: string]: unknown };
 
-function findExisting(entity: ImportEntity, v: Rec): Existing | undefined {
+async function findExisting(entity: ImportEntity, v: Rec): Promise<Existing | undefined> {
   switch (entity) {
     case 'organizations': {
       const key = nameKey(String(v.name ?? ''));
-      if (v.state) return get<Existing>('SELECT * FROM organizations WHERE name_key = ? AND (state = ? OR state IS NULL) ORDER BY (state = ?) DESC LIMIT 1', key, v.state, v.state);
-      return get<Existing>('SELECT * FROM organizations WHERE name_key = ? LIMIT 1', key);
+      if (v.state) return await get<Existing>('SELECT * FROM organizations WHERE name_key = ? AND (state = ? OR state IS NULL) ORDER BY (state = ?) DESC LIMIT 1', key, v.state, v.state);
+      return await get<Existing>('SELECT * FROM organizations WHERE name_key = ? LIMIT 1', key);
     }
     case 'contacts': {
-      if (v.email) { const r = get<Existing>('SELECT * FROM contacts WHERE email = ? LIMIT 1', v.email); if (r) return r; }
+      if (v.email) { const r = await get<Existing>('SELECT * FROM contacts WHERE email = ? LIMIT 1', v.email); if (r) return r; }
       const key = nameKey(String(v.name ?? ''));
       const orgKey = v.organization ? nameKey(String(v.organization)) : null;
       return orgKey
-        ? get<Existing>('SELECT c.* FROM contacts c JOIN organizations o ON o.id = c.org_id WHERE c.name_key = ? AND o.name_key = ? LIMIT 1', key, orgKey)
-        : get<Existing>('SELECT * FROM contacts WHERE name_key = ? LIMIT 1', key);
+        ? await get<Existing>('SELECT c.* FROM contacts c JOIN organizations o ON o.id = c.org_id WHERE c.name_key = ? AND o.name_key = ? LIMIT 1', key, orgKey)
+        : await get<Existing>('SELECT * FROM contacts WHERE name_key = ? LIMIT 1', key);
     }
     case 'requests': {
-      if (v.ref) { const r = get<Existing>('SELECT * FROM requests WHERE ref = ?', v.ref); if (r) return r; }
-      return get<Existing>('SELECT * FROM requests WHERE from_key = ? AND origin = ? LIMIT 1', nameKey(String(v.from_name ?? '')), 'import')
-        ?? get<Existing>('SELECT * FROM requests WHERE from_key = ? ORDER BY id LIMIT 1', nameKey(String(v.from_name ?? '')));
+      if (v.ref) { const r = await get<Existing>('SELECT * FROM requests WHERE ref = ?', v.ref); if (r) return r; }
+      return await get<Existing>('SELECT * FROM requests WHERE from_key = ? AND origin = ? LIMIT 1', nameKey(String(v.from_name ?? '')), 'import')
+        ?? await get<Existing>('SELECT * FROM requests WHERE from_key = ? ORDER BY id LIMIT 1', nameKey(String(v.from_name ?? '')));
     }
     case 'projects':
-      return get<Existing>('SELECT * FROM projects WHERE name_key = ? AND (county = ? OR county IS NULL OR ? IS NULL) LIMIT 1', nameKey(String(v.name ?? '')), v.county ?? null, v.county ?? null);
+      return await get<Existing>('SELECT * FROM projects WHERE name_key = ? AND (county = ?::text OR county IS NULL OR ?::text IS NULL) LIMIT 1', nameKey(String(v.name ?? '')), v.county ?? null, v.county ?? null);
   }
 }
 
@@ -128,28 +128,28 @@ const REQUIRED: Record<ImportEntity, string> = { organizations: 'name', contacts
 
 const same = (a: unknown, b: unknown) => (a ?? null) === (b ?? null) || String(a ?? '') === String(b ?? '');
 
-export function buildPlan(entity: ImportEntity, sheets: ParsedSheet[], mapping: Mapping): Plan {
+export async function buildPlan(entity: ImportEntity, sheets: ParsedSheet[], mapping: Mapping): Promise<Plan> {
   const items: PlanItem[] = [];
   const seen = new Set<string>(); // duplicate rows inside the file
   for (const sheet of sheets) {
     const sm = mapping.sheets[sheet.name];
     if (!sm?.include) continue;
     const dnc = /dnc|do not contact/i.test(sheet.name);
-    sheet.rows.forEach((row, i) => {
+    for (const [i, row] of sheet.rows.entries()) {
       const mapped: Record<string, string> = {};
       for (const [header, field] of Object.entries(sm.columns)) if (field) mapped[field] = row[header] ?? '';
       const { values, problem } = typedValues(entity, mapped);
       const reqField = REQUIRED[entity];
       const label = String(values[reqField] ?? '(blank)');
       const base = { sheet: sheet.name, row: i + 2, label, values, matchId: null as number | null, changes: [] as Change[], conflicts: [] as Change[], flags: { doNotContact: dnc } };
-      if (!values[reqField]) { items.push({ ...base, action: 'invalid', problem: `${IMPORT_FIELDS[entity].find((f) => f.name === reqField)?.label} is missing` }); return; }
+      if (!values[reqField]) { items.push({ ...base, action: 'invalid', problem: `${IMPORT_FIELDS[entity].find((f) => f.name === reqField)?.label} is missing` }); continue; }
 
       const dupKey = `${nameKey(label)}|${values.county ?? values.state ?? values.email ?? ''}`;
-      if (seen.has(dupKey)) { items.push({ ...base, action: 'unchanged', problem: 'Repeats an earlier row in this file' }); return; }
+      if (seen.has(dupKey)) { items.push({ ...base, action: 'unchanged', problem: 'Repeats an earlier row in this file' }); continue; }
       seen.add(dupKey);
 
-      const existing = findExisting(entity, values);
-      if (!existing) { items.push({ ...base, action: 'new', problem }); return; }
+      const existing = await findExisting(entity, values);
+      if (!existing) { items.push({ ...base, action: 'new', problem }); continue; }
 
       const changes: Change[] = [];
       const conflicts: Change[] = [];
@@ -164,22 +164,22 @@ export function buildPlan(entity: ImportEntity, sheets: ParsedSheet[], mapping: 
       }
       const action: PlanItem['action'] = conflicts.length ? 'conflict' : changes.length ? 'updated' : 'unchanged';
       items.push({ ...base, action, matchId: existing.id, changes, conflicts, problem });
-    });
+    }
   }
   const summary = { new: 0, updated: 0, unchanged: 0, conflict: 0, invalid: 0, total: items.length };
   for (const it of items) summary[it.action]++;
   return { entity, items, summary };
 }
 
-export function resolveOrgByName(name: string | null | undefined): number | null {
+export async function resolveOrgByName(name: string | null | undefined): Promise<number | null> {
   if (!name) return null;
-  return get<{ id: number }>('SELECT id FROM organizations WHERE name_key = ? ORDER BY verification = \'verified\' DESC, id LIMIT 1', nameKey(name))?.id ?? null;
+  return (await get<{ id: number }>('SELECT id FROM organizations WHERE name_key = ? ORDER BY verification = \'verified\' DESC, id LIMIT 1', nameKey(name)))?.id ?? null;
 }
 
-export function userByLabel(label: string | null | undefined): number | null {
+export async function userByLabel(label: string | null | undefined): Promise<number | null> {
   if (!label) return null;
   const n = label.trim().toLowerCase();
-  return all<{ id: number; name: string; initials: string; email: string }>('SELECT id, name, initials, email FROM users').find(
+  return (await all<{ id: number; name: string; initials: string; email: string }>('SELECT id, name, initials, email FROM users')).find(
     (u) => u.name.toLowerCase() === n || u.initials.toLowerCase() === n || u.email.toLowerCase() === n || u.name.toLowerCase().split(' ')[0] === n,
   )?.id ?? null;
 }

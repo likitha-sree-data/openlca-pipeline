@@ -10,10 +10,10 @@ import { label, ORG_TYPES, PROJECT_STAGES, SOURCE_KINDS } from '@/lib/constants'
 
 export const metadata: Metadata = { title: 'The data', description: 'The record itself: every source, every county, every row with its provenance.' };
 
-export default function DataPage() {
-  const h = headline();
-  const c = dataCharts();
-  const ledger = sourcesLedger();
+export default async function DataPage() {
+  const h = await headline();
+  const c = await dataCharts();
+  const ledger = await sourcesLedger();
   const stat = (n: number, l: string) => <div className="stat" key={l}><b className="num">{fmtInt(n)}</b><span>{l}</span></div>;
   return (
     <div className="container" style={{ paddingBottom: 48 }}>

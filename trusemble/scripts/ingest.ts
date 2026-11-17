@@ -22,13 +22,13 @@ ${FETCHERS.map((f) => `  ${f.id.padEnd(16)} ${f.name}`).join('\n')}
 async function main() {
   if (names.length === 0) return usage();
   if (names[0] === 'list') {
-    for (const s of all<{ slug: string; last_fetched_at: string | null }>('SELECT slug, last_fetched_at FROM sources ORDER BY slug')) console.log(`${(s.slug ?? '').padEnd(32)} ${s.last_fetched_at ?? 'never'}`);
+    for (const s of await all<{ slug: string; last_fetched_at: string | null }>('SELECT slug, last_fetched_at FROM sources ORDER BY slug')) console.log(`${(s.slug ?? '').padEnd(32)} ${s.last_fetched_at ?? 'never'}`);
     return;
   }
   if (names[0] === 'clear-demo') {
-    const n = scalar<number>(`SELECT COUNT(*) FROM projects WHERE verification = 'demo'`);
-    for (const t of ['awards', 'projects', 'contacts', 'organizations', 'counties']) run(`DELETE FROM ${t} WHERE verification = 'demo'`);
-    run(`DELETE FROM sources WHERE verification = 'demo'`);
+    const n = await scalar<number>(`SELECT COUNT(*) FROM projects WHERE verification = 'demo'`);
+    for (const t of ['awards', 'projects', 'contacts', 'organizations', 'counties']) await run(`DELETE FROM ${t} WHERE verification = 'demo'`);
+    await run(`DELETE FROM sources WHERE verification = 'demo'`);
     console.log(`Removed demo rows (${n} projects and everything that pointed at them).`);
     return;
   }

@@ -7,8 +7,8 @@ import { label, PROJECT_CATEGORIES } from '@/lib/constants';
 
 export const metadata: Metadata = { title: 'Fund the work', description: 'Ready wildfire projects that were turned down or are still seeking funding, each with its scope and source. Back one directly.' };
 
-export default function FundPage() {
-  const rows = all<{ id: number; name: string; county: string | null; state: string | null; category: string; requested_amount: number | null; owner: string | null; description: string | null }>(
+export default async function FundPage() {
+  const rows = await all<{ id: number; name: string; county: string | null; state: string | null; category: string; requested_amount: number | null; owner: string | null; description: string | null }>(
     `SELECT p.id, p.name, p.county, p.state, p.category, p.requested_amount, o.name owner, p.description FROM projects p LEFT JOIN organizations o ON o.id = p.owner_org_id
      WHERE p.stage = 'seeking_funding' AND ${publicRows('p')}
      ORDER BY (p.description IS NOT NULL) DESC, p.requested_amount IS NULL, p.requested_amount DESC, p.name LIMIT 60`,

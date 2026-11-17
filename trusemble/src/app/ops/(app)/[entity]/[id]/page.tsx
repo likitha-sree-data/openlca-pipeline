@@ -19,7 +19,7 @@ type Row = Record<string, string | number | null>;
 export async function generateMetadata({ params }: { params: Promise<{ entity: string; id: string }> }): Promise<Metadata> {
   const { entity, id } = await params;
   const cfg = entityBySlug(entity);
-  const row = cfg && /^\d+$/.test(id) ? getRow<Row>(cfg, Number(id)) : undefined;
+  const row = cfg && /^\d+$/.test(id) ? await getRow<Row>(cfg, Number(id)) : undefined;
   return { title: row ? String(row[cfg!.titleCol]) : 'Not found' };
 }
 
@@ -31,15 +31,15 @@ export default async function EntityDetail({ params, searchParams }: { params: P
   const cfg = entityBySlug(entity);
   if (!cfg || !/^\d+$/.test(id)) notFound();
   const rid = Number(id);
-  const row = getRow<Row>(cfg, rid);
+  const row = await getRow<Row>(cfg, rid);
   if (!row) notFound();
   const sp = await searchParams;
-  const users = userOptions();
+  const users = await userOptions();
 
   const refLabels: Record<string, string> = {};
   for (const f of cfg.fields) {
     if (f.type === 'ref' && f.ref && f.ref !== 'users' && row[f.name]) {
-      refLabels[f.name] = get<{ n: string }>(`SELECT name n FROM ${f.ref} WHERE id = ?`, Number(row[f.name]))?.n ?? '';
+      refLabels[f.name] = (await get<{ n: string }>(`SELECT name n FROM ${f.ref} WHERE id = ?`, Number(row[f.name])))?.n ?? '';
     }
   }
   const archived = !!row.archived;

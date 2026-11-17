@@ -17,19 +17,19 @@ export default async function SourcesPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const where: string[] = [];
   const params: string[] = [];
-  if (sp.q) { where.push('(s.name LIKE ? OR s.url LIKE ?)'); params.push(`%${sp.q}%`, `%${sp.q}%`); }
+  if (sp.q) { where.push('(s.name ILIKE ? OR s.url ILIKE ?)'); params.push(`%${sp.q}%`, `%${sp.q}%`); }
   if (sp.kind) { where.push('s.kind = ?'); params.push(sp.kind); }
-  const rows = all<{ id: number; name: string; url: string | null; kind: string; description: string | null; last_fetched_at: string | null; assessed: number; is_private: number; verification: string; orgs: number; projects: number; programs: number; awards: number; last_status: string | null; runs: number }>(
-    `SELECT s.*, (SELECT COUNT(*) FROM organizations WHERE source_id = s.id) orgs, (SELECT COUNT(*) FROM projects WHERE source_id = s.id) projects,
+  const rows = await all<{ id: number; name: string; url: string | null; kind: string; description: string | null; last_fetched_at: string | null; assessed: number; is_private: number; verification: string; orgs: number; projects: number; programs: number; awards: number; last_status: string | null; runs: number }>(
+    `SELECT * FROM (SELECT s.*, (SELECT COUNT(*) FROM organizations WHERE source_id = s.id) orgs, (SELECT COUNT(*) FROM projects WHERE source_id = s.id) projects,
        (SELECT COUNT(*) FROM programs WHERE source_id = s.id) programs, (SELECT COUNT(*) FROM awards WHERE source_id = s.id) awards,
        (SELECT status FROM source_runs WHERE source_id = s.id ORDER BY id DESC LIMIT 1) last_status, (SELECT COUNT(*) FROM source_runs WHERE source_id = s.id) runs
-     FROM sources s ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
-     ORDER BY (orgs + projects + programs + awards) DESC, s.name`, ...params,
+     FROM sources s ${where.length ? 'WHERE ' + where.join(' AND ') : ''}) AS t
+     ORDER BY (orgs + projects + programs + awards) DESC, name`, ...params,
   );
-  const total = scalar<number>('SELECT COUNT(*) FROM sources');
-  const split = { v: scalar<number>("SELECT COUNT(*) FROM sources WHERE verification='verified'"), u: scalar<number>("SELECT COUNT(*) FROM sources WHERE verification='unverified'"), d: scalar<number>("SELECT COUNT(*) FROM sources WHERE verification='demo'") };
+  const total = await scalar<number>('SELECT COUNT(*) FROM sources');
+  const split = { v: await scalar<number>("SELECT COUNT(*) FROM sources WHERE verification='verified'"), u: await scalar<number>("SELECT COUNT(*) FROM sources WHERE verification='unverified'"), d: await scalar<number>("SELECT COUNT(*) FROM sources WHERE verification='demo'") };
   const feeding = rows.filter((r) => r.orgs + r.projects + r.programs + r.awards > 0).length;
-  const fetched = scalar<number>("SELECT COUNT(*) FROM sources WHERE last_fetched_at IS NOT NULL");
+  const fetched = await scalar<number>("SELECT COUNT(*) FROM sources WHERE last_fetched_at IS NOT NULL");
   return (
     <OpsPage section="Sources">
       <PageHead title="Sources">Every source the record cites, how many rows it feeds, when it was last fetched, and whether the team has looked at it. Grows every time data is refreshed</PageHead>

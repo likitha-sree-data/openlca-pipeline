@@ -5,8 +5,8 @@ import { feedTotal } from '@/lib/format-feeds';
 import { toCsv } from '@/lib/text';
 
 // Public ledger of every non-private source: what it feeds and when it was last retrieved. /api/public/ledger?format=csv for a spreadsheet.
-export function GET(req: NextRequest) {
-  const rows = sourcesLedger().map((s) => ({
+export async function GET(req: NextRequest) {
+  const rows = (await sourcesLedger()).map((s) => ({
     name: s.name, url: s.url ?? '', kind: s.kind, organizations: s.feeds.organizations, projects: s.feeds.projects, funding_programs: s.feeds.programs,
     funding_awards: s.feeds.awards, rows_fed: feedTotal(s.feeds), last_fetched: s.last_fetched_at ?? '', verification: s.verification, description: s.description ?? '',
   }));

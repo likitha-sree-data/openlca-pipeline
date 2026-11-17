@@ -11,12 +11,12 @@ import { OutreachForm } from './MergeForm';
 type Row = Record<string, string | number | null>;
 
 /** One person: who they are, how to reach them, what we have talked about, and who on the team knows them. */
-export function ContactView({ id, row, users }: { id: number; row: Row; users: [string, string][] }) {
-  const org = row.org_id ? get<{ id: number; name: string }>('SELECT id, name FROM organizations WHERE id = ?', Number(row.org_id)) : undefined;
-  const requests = all<{ id: number; ref: string; from_name: string; status: string; received_at: string }>('SELECT id, ref, from_name, status, received_at FROM requests WHERE contact_id = ? ORDER BY id DESC LIMIT 8', id);
-  const outreach = get<{ id: number; qualified_at: string | null; contacted_at: string | null; followup_at: string | null; replied_at: string | null; meeting_at: string | null; who: string | null }>(
+export async function ContactView({ id, row, users }: { id: number; row: Row; users: [string, string][] }) {
+  const org = row.org_id ? await get<{ id: number; name: string }>('SELECT id, name FROM organizations WHERE id = ?', Number(row.org_id)) : undefined;
+  const requests = await all<{ id: number; ref: string; from_name: string; status: string; received_at: string }>('SELECT id, ref, from_name, status, received_at FROM requests WHERE contact_id = ? ORDER BY id DESC LIMIT 8', id);
+  const outreach = await get<{ id: number; qualified_at: string | null; contacted_at: string | null; followup_at: string | null; replied_at: string | null; meeting_at: string | null; who: string | null }>(
     'SELECT p.*, u.name who FROM pilot_people p LEFT JOIN users u ON u.id = p.added_by WHERE p.contact_id = ?', id);
-  const dncNote = row.do_not_contact ? get<{ body: string }>(`SELECT body FROM activities WHERE entity = 'contacts' AND entity_id = ? AND body LIKE 'Marked do not contact%' ORDER BY id DESC LIMIT 1`, id)?.body : null;
+  const dncNote = row.do_not_contact ? (await get<{ body: string }>(`SELECT body FROM activities WHERE entity = 'contacts' AND entity_id = ? AND body ILIKE 'Marked do not contact%' ORDER BY id DESC LIMIT 1`, id))?.body : null;
   const dnc = !!row.do_not_contact;
   const email = row.email ? String(row.email) : null;
   const phone = row.phone ? String(row.phone) : null;

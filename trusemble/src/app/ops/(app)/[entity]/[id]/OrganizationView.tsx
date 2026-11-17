@@ -12,14 +12,14 @@ import { MergeForm } from './MergeForm';
 type Row = Record<string, string | number | null>;
 
 /** One group: who they are, who we know there, what they run, what they asked us, what money they received. */
-export function OrganizationView({ id, row }: { id: number; row: Row }) {
+export async function OrganizationView({ id, row }: { id: number; row: Row }) {
   const site = safeHref(row.website as string | null);
-  const people = all<{ id: number; name: string; title: string | null; email: string | null; phone: string | null; do_not_contact: number }>('SELECT id, name, title, email, phone, do_not_contact FROM contacts WHERE org_id = ? AND archived = 0 ORDER BY name LIMIT 12', id);
-  const projects = all<{ id: number; name: string; stage: string; published: number }>('SELECT id, name, stage, published FROM projects WHERE owner_org_id = ? AND archived = 0 ORDER BY name LIMIT 12', id);
-  const requests = all<{ id: number; ref: string; kind: string; status: string }>('SELECT id, ref, kind, status FROM requests WHERE org_id = ? AND archived = 0 ORDER BY id DESC LIMIT 8', id);
-  const money = get<{ n: number; s: number | null }>('SELECT COUNT(*) n, SUM(amount_committed) s FROM awards WHERE org_id = ?', id);
-  const byProgram = all<{ name: string | null; n: number; s: number | null }>('SELECT pr.name, COUNT(*) n, SUM(a.amount_committed) s FROM awards a LEFT JOIN programs pr ON pr.id = a.program_id WHERE a.org_id = ? GROUP BY pr.id ORDER BY s DESC LIMIT 5', id);
-  const dupes = findDuplicates(id);
+  const people = await all<{ id: number; name: string; title: string | null; email: string | null; phone: string | null; do_not_contact: number }>('SELECT id, name, title, email, phone, do_not_contact FROM contacts WHERE org_id = ? AND archived = 0 ORDER BY name LIMIT 12', id);
+  const projects = await all<{ id: number; name: string; stage: string; published: number }>('SELECT id, name, stage, published FROM projects WHERE owner_org_id = ? AND archived = 0 ORDER BY name LIMIT 12', id);
+  const requests = await all<{ id: number; ref: string; kind: string; status: string }>('SELECT id, ref, kind, status FROM requests WHERE org_id = ? AND archived = 0 ORDER BY id DESC LIMIT 8', id);
+  const money = await get<{ n: number; s: number | null }>('SELECT COUNT(*) n, SUM(amount_committed) s FROM awards WHERE org_id = ?', id);
+  const byProgram = await all<{ name: string | null; n: number; s: number | null }>('SELECT pr.name, COUNT(*) n, SUM(a.amount_committed) s FROM awards a LEFT JOIN programs pr ON pr.id = a.program_id WHERE a.org_id = ? GROUP BY pr.id ORDER BY s DESC LIMIT 5', id);
+  const dupes = await findDuplicates(id);
 
   return (
     <div className="detail-grid" style={{ marginTop: 4 }}>

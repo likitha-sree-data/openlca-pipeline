@@ -49,16 +49,18 @@ export default async function EntityList({ params, searchParams }: { params: Pro
   const today = todayIso();
   const quick = quickFilters(cfg.key, today, me?.id ?? -1);
   const show = sp.show && quick[sp.show] ? sp.show : undefined;
-  const { rows, total, counts } = listRows<Row>(cfg, { q: sp.q, verification: sp.v, filters, tab: sp.tab, extra: show ? quick[show] : undefined, limit: view === 'board' ? 300 : limit });
+  const { rows, total, counts } = await listRows<Row>(cfg, { q: sp.q, verification: sp.v, filters, tab: sp.tab, extra: show ? quick[show] : undefined, limit: view === 'board' ? 300 : limit });
   const shown = needsSchedule ? rows.filter((r) => !r.next_action_date && r.status !== 'closed') : rows;
-  const users = userOptions();
-  const qs = (patch: Record<string, string | undefined>) => {
+  const users = await userOptions();
+  const filterChoices: Record<string, [string, string][]> = {};
+  for (const f of cfg.filters) if (!f.options.length) filterChoices[f.name] = await distinctOptions(cfg, f.name);
+  const qs =(patch: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries({ ...sp, ...patch })) if (v) p.set(k, v);
     const s = p.toString();
     return `/ops/${cfg.slug}${s ? '?' + s : ''}`;
   };
-  const tabCounts = cfg.key === 'requests' ? tabCountsFor() : null;
+  const tabCounts = cfg.key === 'requests' ? await tabCountsFor() : null;
 
   return (
     <OpsPage section={cfg.plural[0].toUpperCase() + cfg.plural.slice(1)}>
@@ -98,7 +100,7 @@ export default async function EntityList({ params, searchParams }: { params: Pro
           {[['', 'All'], ['verified', 'Checked'], ['unverified', 'Not yet checked'], ['demo', 'Sample']].map(([v, l]) => <Link key={v} href={qs({ v: v || undefined })} className={(sp.v ?? '') === v ? 'on' : ''}>{l}</Link>)}
         </div>}
         {cfg.filters.map((f) => {
-          const opts: readonly (readonly [string, string])[] = f.options.length ? f.options : distinctOptions(cfg, f.name);
+          const opts: readonly (readonly [string, string])[] = f.options.length ? f.options : filterChoices[f.name] ?? [];
           const cur = filters[f.name] ?? (f.name === 'archived' ? 'any' : '');
           return (
             <select key={f.name} name={f.name} className="select" defaultValue={cur} aria-label={f.label}>
@@ -111,7 +113,7 @@ export default async function EntityList({ params, searchParams }: { params: Pro
         <noscript><button className="btn sm">Apply</button></noscript>
       </AutoForm>
 
-      <p className="row" style={{ gap: 18, margin: '4px 0 14px' }}><span><b className="num">{fmtInt(total)}</b> {cfg.plural} shown</span><Split v={counts.verified} u={counts.unverified} d={counts.demo} />{cfg.key === 'organizations' && <span className="muted small">{fmtInt(Number(get<{ n: number }>('SELECT COUNT(*) n FROM organizations WHERE published = 1 AND archived = 0')?.n))} shown on the website</span>}</p>
+      <p className="row" style={{ gap: 18, margin: '4px 0 14px' }}><span><b className="num">{fmtInt(total)}</b> {cfg.plural} shown</span><Split v={counts.verified} u={counts.unverified} d={counts.demo} />{cfg.key === 'organizations' && <span className="muted small">{fmtInt(Number((await get<{ n: number }>('SELECT COUNT(*) n FROM organizations WHERE published = 1 AND archived = 0'))?.n))} shown on the website</span>}</p>
 
       {needsSchedule && <div className="alert" style={{ marginBottom: 14 }}>Giving each open request an owner and a next action date. <Link className="link" href="/ops/requests">Back to all requests</Link></div>}
 
@@ -127,9 +129,9 @@ export default async function EntityList({ params, searchParams }: { params: Pro
   );
 }
 
-function tabCountsFor(): Record<string, number> {
-  const c = (sql: string) => Number((get<{ n: number }>(`SELECT COUNT(*) n FROM requests WHERE archived = 0${sql}`))?.n ?? 0);
-  return { all: c(''), new: c(" AND status IN ('new','needs_info')"), conversation: c(" AND status = 'qualified'"), progress: c(" AND status = 'matching'"), intro: c(" AND status = 'intro_made'"), closed: c(" AND status = 'closed'") };
+async function tabCountsFor(): Promise<Record<string, number>> {
+  const c = async (sql: string) => Number((await get<{ n: number }>(`SELECT COUNT(*) n FROM requests WHERE archived = 0${sql}`))?.n ?? 0);
+  return { all: await c(''), new: await c(" AND status IN ('new','needs_info')"), conversation: await c(" AND status = 'qualified'"), progress: await c(" AND status = 'matching'"), intro: await c(" AND status = 'intro_made'"), closed: await c(" AND status = 'closed'") };
 }
 
 function Empty({ what }: { what: string }) { return <div className="empty">No {what} match this view.</div>; }

@@ -14,14 +14,14 @@ const PRECISION_NOTE: Record<string, string> = { parcel: 'Parcel or address-leve
 
 export async function generateMetadata({ params }: P): Promise<Metadata> {
   const { id } = await params;
-  const d = /^\d+$/.test(id) ? getProject(Number(id)) : null;
+  const d = /^\d+$/.test(id) ? await getProject(Number(id)) : null;
   return d ? { title: d.project.name, description: d.project.description?.slice(0, 160) ?? `${d.project.name}, ${d.project.county ?? ''}` } : { title: 'Project not found' };
 }
 
 export default async function ProjectPage({ params }: P) {
   const { id } = await params;
   if (!/^\d+$/.test(id)) notFound();
-  const d = getProject(Number(id));
+  const d = await getProject(Number(id));
   if (!d) notFound();
   const { project: p, awards, programs } = d;
   const today = todayIso();

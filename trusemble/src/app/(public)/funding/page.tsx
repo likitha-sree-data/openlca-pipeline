@@ -33,7 +33,7 @@ function Card({ p }: { p: PublicProgram }) {
 export default async function FundingPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const today = todayIso();
-  let programs = listPrograms();
+  let programs = await listPrograms();
   const states = [...new Set(programs.map((p) => p.state).filter((s): s is string => !!s))].sort();
   if (sp.state) programs = programs.filter((p) => p.scope === 'national' || p.state === sp.state);
   if (sp.type) programs = programs.filter((p) => p.type === sp.type);

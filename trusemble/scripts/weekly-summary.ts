@@ -2,7 +2,7 @@ import { sendAlert, alertChannels } from '../src/lib/notify';
 import { weeklySummary } from '../src/lib/summary';
 
 async function main() {
-  const a = weeklySummary();
+  const a = await weeklySummary();
   console.log([a.title, ...a.lines].join('\n'));
   if (!alertChannels().email && !alertChannels().webhook) { console.log('\nNo alerts are set up, so nothing was sent. See Settings, Alerts.'); return; }
   const r = await sendAlert(a);

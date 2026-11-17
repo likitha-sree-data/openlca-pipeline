@@ -3,19 +3,9 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   output: process.env.STANDALONE === '1' ? 'standalone' : undefined,
-  serverExternalPackages: ['exceljs'],
+  // Database drivers and the spreadsheet reader stay as plain Node modules (the embedded engine loads a WebAssembly file at run time).
+  serverExternalPackages: ['exceljs', 'pg', '@electric-sql/pglite'],
   experimental: { serverActions: { bodySizeLimit: '11mb' } },
-  webpack(config, { isServer }) {
-    // node:sqlite is a recent builtin that webpack does not know about yet.
-    if (isServer) {
-      const prev = config.externals ?? [];
-      config.externals = [
-        ...(Array.isArray(prev) ? prev : [prev]),
-        ({ request }, cb) => (request === 'node:sqlite' ? cb(null, 'commonjs node:sqlite') : cb()),
-      ];
-    }
-    return config;
-  },
   async headers() {
     return [
       {

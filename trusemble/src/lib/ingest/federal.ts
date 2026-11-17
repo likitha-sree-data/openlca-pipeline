@@ -22,7 +22,7 @@ export const usaSpending: Fetcher = {
       };
       const res = await ctx.fetchJson<SpendPage>(this.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const rows = res.results ?? [];
-      tx(() => {
+      await tx(async () => {
         for (const r of rows) {
           const name = r['Recipient Name'] as string | undefined;
           const awardId = (r['generated_internal_id'] ?? r['Award ID']) as string | undefined;
@@ -33,8 +33,8 @@ export const usaSpending: Fetcher = {
           const stFips = fipsOf(state);
           const countyCode = pop.county_code ? String(pop.county_code).padStart(3, '0') : null;
           const fips = stFips && countyCode ? stFips + countyCode : null;
-          const org = upsertOrganization(ctx.sourceId, `recipient:${name}`, { name: titleCase(name), type: 'other', state, county: county ? titleCase(county) : null, published: true });
-          const a = upsertAward(ctx.sourceId, String(awardId), {
+          const org = await upsertOrganization(ctx.sourceId, `recipient:${name}`, { name: titleCase(name), type: 'other', state, county: county ? titleCase(county) : null, published: true });
+          const a = await upsertAward(ctx.sourceId, String(awardId), {
             programRef: r['CFDA Number'] ? String(r['CFDA Number']) : null, orgId: org.id, committed: numOrNull(r['Award Amount']), disbursed: numOrNull(r['Total Outlays']),
             year: r['Start Date'] ? Number(String(r['Start Date']).slice(0, 4)) : null, county: county ? titleCase(county) : null, state, fips,
           });
@@ -64,12 +64,12 @@ export const grantsGov: Fetcher = {
     for (const keyword of KEYWORDS) {
       const res = await ctx.fetchJson<{ data?: { oppHits?: GgHit[] } }>(this.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keyword, oppStatuses: 'forecasted|posted', rows: 100, startRecordNum: 0 }) });
       const hits = res.data?.oppHits ?? [];
-      tx(() => {
+      await tx(async () => {
         for (const h of hits) {
           const ref = String(h.number ?? h.id ?? '');
           if (!ref || !h.title || seen.has(ref)) continue;
           seen.add(ref);
-          const r = upsertProgram(ctx.sourceId, ref, {
+          const r = await upsertProgram(ctx.sourceId, ref, {
             name: h.title, runBy: h.agency ?? h.agencyCode ?? null, type: 'grant', focus: 'Hazard mitigation', start: mdy(h.openDate), end: mdy(h.closeDate), scope: 'national',
             url: h.id ? `https://www.grants.gov/search-results-detail/${h.id}` : null,
           });
@@ -98,7 +98,7 @@ export const openFema: Fetcher = {
       const q = new URLSearchParams({ $top: String(top), $skip: String(skip), $orderby: 'id', $filter: "contains(projectType,'ildfire') or contains(projectType,'uel') or contains(projectType,'efensible')" });
       const res = await ctx.fetchJson<Record<string, unknown>>(`${this.url}?${q}`);
       const rows = ((res.HmaSubapplications ?? res.hmaSubapplications ?? []) as Record<string, unknown>[]);
-      tx(() => {
+      await tx(async () => {
         for (const row of rows) {
           const id = pickField(row, FEMA.id);
           const title = pickField(row, FEMA.title);
@@ -108,11 +108,11 @@ export const openFema: Fetcher = {
           const state = stateCode(pickField(row, FEMA.state));
           const county = pickField(row, FEMA.county);
           const applicant = pickField(row, FEMA.applicant);
-          const org = applicant ? upsertOrganization(ctx.sourceId, `applicant:${applicant}`, { name: String(applicant), type: 'other', state, published: true }) : null;
+          const org = applicant ? await upsertOrganization(ctx.sourceId, `applicant:${applicant}`, { name: String(applicant), type: 'other', state, published: true }) : null;
           const federal = Number(pickField(row, FEMA.federal) ?? 0) || null;
           const requested = Number(pickField(row, FEMA.requested) ?? 0) || null;
           const awarded = /award|obligat|approv|complete/.test(status) || !!federal;
-          const p = upsertProject(ctx.sourceId, String(id), {
+          const p = await upsertProject(ctx.sourceId, String(id), {
             name: String(title), ownerOrgId: org?.id ?? null, stage: awarded ? 'funded' : 'seeking_funding', category: 'wildfire_mitigation', state, county: county ? String(county) : null,
             requested: awarded ? null : requested, budget: federal ?? requested, needs: awarded ? null : 'Funding',
           });
@@ -120,7 +120,7 @@ export const openFema: Fetcher = {
           if (federal) {
             const prog = String(pickField(row, FEMA.program) ?? '');
             const ref = /BRIC/i.test(prog) ? '97.047' : /HMGP/i.test(prog) ? '97.039' : null;
-            upsertAward(ctx.sourceId, `award:${id}`, { programRef: ref, orgId: org?.id ?? null, projectId: p.id, committed: federal, year: Number(pickField(row, FEMA.fy)) || null, state, county: county ? String(county) : null });
+            await upsertAward(ctx.sourceId, `award:${id}`, { programRef: ref, orgId: org?.id ?? null, projectId: p.id, committed: federal, year: Number(pickField(row, FEMA.fy)) || null, state, county: county ? String(county) : null });
           }
         }
       });

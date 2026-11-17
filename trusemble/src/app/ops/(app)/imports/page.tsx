@@ -11,9 +11,9 @@ export const metadata: Metadata = { title: 'Imports' };
 type Result = { new?: number; updated?: number; unchanged?: number; conflicts?: number; invalid?: number };
 const resultText = (r: Result | null) => r ? [r.new && `${r.new} new`, r.updated && `${r.updated} updated`, r.unchanged && `${r.unchanged} unchanged`, r.conflicts && `${r.conflicts} conflicts`, r.invalid && `${r.invalid} invalid`].filter(Boolean).join(' · ') || 'No rows' : '';
 
-export default function ImportsPage() {
-  const rows = all<{ id: number; filename: string; format: string | null; sheets: string | null; entity: string | null; result: string | null; problems: string | null; status: string; by: string | null; created_at: string }>(
-    `SELECT i.id, i.filename, i.format, i.sheets, i.entity, i.result, i.problems, i.status, u.name by, i.created_at FROM imports i LEFT JOIN users u ON u.id = i.user_id ORDER BY i.id DESC LIMIT 100`,
+export default async function ImportsPage() {
+  const rows = await all<{ id: number; filename: string; format: string | null; sheets: string | null; entity: string | null; result: string | null; problems: string | null; status: string; by: string | null; created_at: string }>(
+    `SELECT i.id, i.filename, i.format, i.sheets, i.entity, i.result, i.problems, i.status, u.name AS "by", i.created_at FROM imports i LEFT JOIN users u ON u.id = i.user_id ORDER BY i.id DESC LIMIT 100`,
   );
   return (
     <OpsPage section="Check data">

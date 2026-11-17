@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import fs from 'node:fs';
 import { notFound } from 'next/navigation';
+import { getBlob } from '@/lib/blobs';
 import { OpsPage } from '@/components/ops/Shell';
 import { PageHead } from '@/components/ops/ui';
 import { get } from '@/lib/db';
@@ -13,12 +13,12 @@ import { MappingForm } from './MappingForm';
 
 export const metadata: Metadata = { title: 'Import' };
 
-type Imp = { id: number; filename: string; stored_path: string | null; format: string | null; entity: ImportEntity; mapping: string; result: string | null; problems: string | null; status: string };
+type Imp = { id: number; filename: string; format: string | null; entity: ImportEntity; mapping: string; result: string | null; problems: string | null; status: string };
 
 export default async function ImportDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ step?: string }> }) {
   const { id } = await params;
   if (!/^\d+$/.test(id)) notFound();
-  const imp = get<Imp>('SELECT * FROM imports WHERE id = ?', Number(id));
+  const imp = await get<Imp>('SELECT * FROM imports WHERE id = ?', Number(id));
   if (!imp) notFound();
   const { step } = await searchParams;
   const applied = imp.status === 'applied' || imp.status === 'failed';
@@ -40,14 +40,15 @@ export default async function ImportDetail({ params, searchParams }: { params: P
 
   let parsed: ParsedFile;
   try {
-    if (!imp.stored_path || !fs.existsSync(imp.stored_path)) throw new Error('The uploaded file is no longer available.');
-    parsed = await parseUpload(imp.filename, fs.readFileSync(imp.stored_path));
+    const bytes = await getBlob(`import:${imp.id}`);
+    if (!bytes) throw new Error('The uploaded file is no longer available.');
+    parsed = await parseUpload(imp.filename, bytes);
   } catch (e) {
     return <OpsPage section="Imports"><div className="alert bad">{e instanceof Error ? e.message : 'The file could not be read.'}</div><p style={{ marginTop: 12 }}><Link className="btn" href="/ops/imports">Back</Link></p></OpsPage>;
   }
 
   if (step === 'review' && imp.status !== 'uploaded') {
-    const plan = buildPlan(imp.entity, parsed.sheets, mapping);
+    const plan = await buildPlan(imp.entity, parsed.sheets, mapping);
     const s = plan.summary;
     const interesting = plan.items.filter((i) => i.action !== 'unchanged').slice(0, 200);
     return (

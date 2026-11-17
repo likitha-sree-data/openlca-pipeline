@@ -40,17 +40,17 @@ export async function fetchJson<T>(url: string, init: RequestInit = {}, tries = 
   throw last instanceof Error ? last : new Error(String(last));
 }
 
-export function ensureSource(f: Fetcher): number {
-  const row = get<{ id: number }>('SELECT id FROM sources WHERE slug = ?', f.slug);
+export async function ensureSource(f: Fetcher): Promise<number> {
+  const row = await get<{ id: number }>('SELECT id FROM sources WHERE slug = ?', f.slug);
   if (row) return row.id;
-  return run(`INSERT INTO sources (slug, name, url, kind, description, is_private) VALUES (?, ?, ?, ?, ?, 0)`, f.slug, f.name, f.url, f.kind, f.description).lastId;
+  return (await run(`INSERT INTO sources (slug, name, url, kind, description, is_private) VALUES (?, ?, ?, ?, ?, 0)`, f.slug, f.name, f.url, f.kind, f.description)).lastId;
 }
 
 /** Run one fetcher inside a recorded run. Each fetcher commits its own batches; a failure keeps what was already saved. */
 export async function runFetcher(f: Fetcher, opts: { limit?: number; log?: (m: string) => void; fetchImpl?: Ctx['fetchJson'] } = {}): Promise<{ stats: Stats; ok: boolean; error?: string }> {
   const log = opts.log ?? ((m: string) => console.log(`[${f.id}] ${m}`));
-  const sourceId = ensureSource(f);
-  const runId = run('INSERT INTO source_runs (source_id) VALUES (?)', sourceId).lastId;
+  const sourceId = await ensureSource(f);
+  const runId = (await run('INSERT INTO source_runs (source_id) VALUES (?)', sourceId)).lastId;
   const stats: Stats = { new: 0, updated: 0, unchanged: 0, skipped: 0 };
   const skipReasons = new Map<string, number>();
   const ctx: Ctx = {
@@ -62,14 +62,14 @@ export async function runFetcher(f: Fetcher, opts: { limit?: number; log?: (m: s
   try {
     await f.run(ctx);
     for (const [why, n] of skipReasons) log(`skipped ${n}: ${why}`);
-    tx(() => {
-      run(`UPDATE source_runs SET status = 'ok', finished_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'), rows_new = ?, rows_updated = ? WHERE id = ?`, stats.new, stats.updated, runId);
-      run(`UPDATE sources SET last_fetched_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?`, sourceId);
+    await tx(async () => {
+      await run(`UPDATE source_runs SET status = 'ok', finished_at = now_iso(), rows_new = ?, rows_updated = ? WHERE id = ?`, stats.new, stats.updated, runId);
+      await run(`UPDATE sources SET last_fetched_at = now_iso() WHERE id = ?`, sourceId);
     });
     return { stats, ok: true };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    run(`UPDATE source_runs SET status = 'error', finished_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'), rows_new = ?, rows_updated = ?, error = ? WHERE id = ?`, stats.new, stats.updated, error.slice(0, 500), runId);
+    await run(`UPDATE source_runs SET status = 'error', finished_at = now_iso(), rows_new = ?, rows_updated = ?, error = ? WHERE id = ?`, stats.new, stats.updated, error.slice(0, 500), runId);
     log(`failed: ${error}`);
     return { stats, ok: false, error };
   }

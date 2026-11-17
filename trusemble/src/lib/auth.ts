@@ -40,7 +40,7 @@ export async function endSession() {
 export async function currentUser(): Promise<User | null> {
   const s = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!s) return null;
-  return get<User>('SELECT id, name, email, initials, role FROM users WHERE id = ?', s.uid) ?? null;
+  return await get<User>('SELECT id, name, email, initials, role FROM users WHERE id = ?', s.uid) ?? null;
 }
 
 /** Call at the top of every operator page, action and route handler. */
@@ -50,8 +50,8 @@ export async function requireUser(): Promise<User> {
   return u;
 }
 
-export function findUserByLogin(email: string, password: string): User | null {
-  const row = get<User & { password_hash: string | null }>(
+export async function findUserByLogin(email: string, password: string): Promise<User | null> {
+  const row = await get<User & { password_hash: string | null }>(
     'SELECT id, name, email, initials, role, password_hash FROM users WHERE lower(email) = lower(?)',
     email.trim(),
   );

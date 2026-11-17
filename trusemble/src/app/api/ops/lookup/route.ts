@@ -17,8 +17,8 @@ export async function GET(req: NextRequest) {
   const cfg = KINDS[kind];
   if (!cfg) return NextResponse.json({ error: 'Unknown kind' }, { status: 400 });
   const like = `%${q.replace(/[%_]/g, '')}%`;
-  const rows = all<{ id: number; label: string; sub: string }>(
-    `SELECT id, ${cfg.label} AS label, ${cfg.sub} AS sub FROM ${cfg.table} WHERE archived = 0 AND ${cfg.label} LIKE ? ORDER BY ${cfg.label} COLLATE NOCASE LIMIT 12`,
+  const rows = await all<{ id: number; label: string; sub: string }>(
+    `SELECT id, ${cfg.label} AS label, ${cfg.sub} AS sub FROM ${cfg.table} WHERE archived = 0 AND ${cfg.label} ILIKE ? ORDER BY ${cfg.label} COLLATE NOCASE LIMIT 12`,
     like,
   );
   return NextResponse.json(rows, { headers: { 'Cache-Control': 'private, no-store' } });

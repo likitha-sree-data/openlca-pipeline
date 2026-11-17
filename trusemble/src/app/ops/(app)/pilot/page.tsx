@@ -22,10 +22,10 @@ const ptFull = (iso: string) => new Intl.DateTimeFormat('en-US', { month: 'short
 
 export default async function PilotPage() {
   const me = await requireUser();
-  const sc = scorecard();
+  const sc = await scorecard();
   if (!sc) return <OpsPage section="Pilot"><div className="empty">No pilot is configured.</div></OpsPage>;
   const { pilot, cards } = sc;
-  const users = userOptions();
+  const users = await userOptions();
   const first = (n: string) => n.split(' ')[0];
 
   return (
@@ -95,8 +95,8 @@ export default async function PilotPage() {
   );
 }
 
-function People({ name, userId }: { name: string; userId: number }) {
-  const people = all<{ id: number; contact_id: number; cname: string; org: string | null; email: string | null; phone: string | null; qualified_at: string | null; contacted_at: string | null; followup_at: string | null; replied_at: string | null; meeting_at: string | null }>(
+async function People({ name, userId }: { name: string; userId: number }) {
+  const people = await all<{ id: number; contact_id: number; cname: string; org: string | null; email: string | null; phone: string | null; qualified_at: string | null; contacted_at: string | null; followup_at: string | null; replied_at: string | null; meeting_at: string | null }>(
     `SELECT p.id, p.contact_id, c.name cname, o.name org, c.email, c.phone, p.qualified_at, p.contacted_at, p.followup_at, p.replied_at, p.meeting_at
      FROM pilot_people p JOIN contacts c ON c.id = p.contact_id LEFT JOIN organizations o ON o.id = c.org_id WHERE p.added_by = ? ORDER BY p.id`, userId);
   const qualified = people.filter((p) => p.qualified_at).length;
@@ -128,10 +128,10 @@ function People({ name, userId }: { name: string; userId: number }) {
   );
 }
 
-function DataCard({ name, since, users }: { name: string; since: string; users: [string, string][] }) {
-  const t = dataTiles(since);
-  const rows = sourcesTable(since);
-  const demos = all<{ id: number; project: string | null; program: string | null; created_at: string }>(
+async function DataCard({ name, since, users }: { name: string; since: string; users: [string, string][] }) {
+  const t = await dataTiles(since);
+  const rows = await sourcesTable(since);
+  const demos = await all<{ id: number; project: string | null; program: string | null; created_at: string }>(
     `SELECT d.id, p.name project, pr.name program, d.created_at FROM workflow_demos d LEFT JOIN projects p ON p.id = d.project_id LEFT JOIN programs pr ON pr.id = d.program_id ORDER BY d.id DESC LIMIT 3`);
   return (
     <>
@@ -172,21 +172,21 @@ function DataCard({ name, since, users }: { name: string; since: string; users: 
   );
 }
 
-function Validation({ name, userId, users }: { name: string; userId: number; users: [string, string][] }) {
-  const queue = all<{ slug: string; id: number; name: string; source: string | null }>(
+async function Validation({ name, userId, users }: { name: string; userId: number; users: [string, string][] }) {
+  const queue = await all<{ slug: string; id: number; name: string; source: string | null }>(
     `SELECT * FROM (
        SELECT 'projects' slug, p.id, p.name, s.name source FROM projects p LEFT JOIN sources s ON s.id = p.source_id WHERE p.verification = 'unverified' AND p.archived = 0
        UNION ALL SELECT 'organizations', o.id, o.name, s.name FROM organizations o LEFT JOIN sources s ON s.id = o.source_id WHERE o.verification = 'unverified' AND o.archived = 0 AND o.published = 1
        UNION ALL SELECT 'funding', pr.id, pr.name, s.name FROM programs pr LEFT JOIN sources s ON s.id = pr.source_id WHERE pr.verification = 'unverified' AND pr.archived = 0 AND pr.published = 1
-     ) ORDER BY source IS NULL, name LIMIT 8`);
-  const reviewed = all<{ id: number; entity: string; entity_id: number; outcome: string; created_at: string; label: string | null }>(
+     ) AS q ORDER BY source IS NULL, name LIMIT 8`);
+  const reviewed = await all<{ id: number; entity: string; entity_id: number; outcome: string; created_at: string; label: string | null }>(
     `SELECT r.id, r.entity, r.entity_id, r.outcome, r.created_at,
        COALESCE((SELECT name FROM projects WHERE id = r.entity_id AND r.entity = 'projects'), (SELECT name FROM organizations WHERE id = r.entity_id AND r.entity = 'organizations'),
                 (SELECT name FROM programs WHERE id = r.entity_id AND r.entity = 'programs'), (SELECT name FROM contacts WHERE id = r.entity_id AND r.entity = 'contacts')) label
      FROM record_reviews r WHERE r.user_id = ? ORDER BY r.id DESC LIMIT 10`, userId);
-  const briefs = all<{ id: number; title: string; project: string | null; created_at: string; complete: number }>(
+  const briefs = await all<{ id: number; title: string; project: string | null; created_at: string; complete: number }>(
     `SELECT b.id, b.title, p.name project, b.created_at, (b.evidence IS NOT NULL AND b.gaps IS NOT NULL AND b.next_step IS NOT NULL AND b.next_owner_id IS NOT NULL) complete FROM briefs b LEFT JOIN projects p ON p.id = b.project_id WHERE b.author_id = ? ORDER BY b.id DESC LIMIT 10`, userId);
-  const asks = all<{ id: number; stakeholder: string; asked_at: string; confirmed_at: string | null }>(`SELECT id, stakeholder, asked_at, confirmed_at FROM validation_asks WHERE user_id = ? ORDER BY id DESC LIMIT 10`, userId);
+  const asks = await all<{ id: number; stakeholder: string; asked_at: string; confirmed_at: string | null }>(`SELECT id, stakeholder, asked_at, confirmed_at FROM validation_asks WHERE user_id = ? ORDER BY id DESC LIMIT 10`, userId);
   const slugOf = (e: string) => (e === 'programs' ? 'funding' : e);
   return (
     <section className="card" style={{ marginTop: 0 }} aria-labelledby="vr">

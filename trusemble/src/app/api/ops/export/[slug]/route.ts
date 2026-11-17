@@ -10,7 +10,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   const { slug } = await params;
   const cfg = entityBySlug(slug);
   if (!cfg) return NextResponse.json({ error: 'Unknown record type' }, { status: 404 });
-  const rows = all<Record<string, unknown>>(`SELECT * FROM ${cfg.table} ORDER BY id`);
+  const rows = await all<Record<string, unknown>>(`SELECT * FROM ${cfg.table} ORDER BY id`);
   return new NextResponse(toCsv(rows), {
     headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="trusemble-${cfg.slug}-${new Date().toISOString().slice(0, 10)}.csv"`, 'Cache-Control': 'private, no-store' },
   });

@@ -19,7 +19,7 @@ async function gate(form: FormData, bucket: string, limit = 6): Promise<FormStat
   if (form.get('website_url')) return { ok: true, ref: 'TS-RECEIVED' }; // honeypot: pretend success, store nothing
   const started = Number(form.get('t0'));
   if (Number.isFinite(started) && Date.now() - started < 2500) return { error: 'That was very fast. Please check your answers and send again.' };
-  if (!allow(`${bucket}:${await callerKey()}`, limit, 3600)) return { error: 'Too many submissions from this connection. Please try again later or email us.' };
+  if (!await allow(`${bucket}:${await callerKey()}`, limit, 3600)) return { error: 'Too many submissions from this connection. Please try again later or email us.' };
   return null;
 }
 
@@ -30,7 +30,7 @@ export async function submitFundingRequest(_prev: FormState, form: FormData): Pr
   if (!p.success) return flatten(p.error);
   const d = p.data;
   try {
-    const { ref } = createFundingRequest({
+    const { ref } = await createFundingRequest({
       person: { name: d.name, email: d.email, phone: d.phone, org: d.org, role: d.role },
       existingProjectId: d.projectChoice === 'existing' && d.existingProjectId ? Number(d.existingProjectId) : null,
       projectName: d.projectName, description: d.description, state: d.state, county: d.county, category: d.category, orgType: d.orgType,
@@ -51,7 +51,7 @@ export async function submitProject(_prev: FormState, form: FormData): Promise<F
   if (!p.success) return flatten(p.error);
   const d = p.data;
   try {
-    const { ref } = createProjectSubmission({ person: { name: d.name, email: d.email, phone: d.phone, org: d.org, role: d.role }, projectName: d.projectName, description: d.description, state: d.state, county: d.county, category: d.category, sourceUrl: d.sourceUrl });
+    const { ref } = await createProjectSubmission({ person: { name: d.name, email: d.email, phone: d.phone, org: d.org, role: d.role }, projectName: d.projectName, description: d.description, state: d.state, county: d.county, category: d.category, sourceUrl: d.sourceUrl });
     after(() => notifyNewRequest(ref));
     return { ok: true, ref };
   } catch {
@@ -66,7 +66,7 @@ export async function submitContact(_prev: FormState, form: FormData): Promise<F
   if (!p.success) return flatten(p.error);
   const d = p.data;
   try {
-    const { ref } = createInquiry({ person: { name: d.name, email: d.email, phone: d.phone, org: d.org, role: d.role }, topic: d.topic, message: d.message });
+    const { ref } = await createInquiry({ person: { name: d.name, email: d.email, phone: d.phone, org: d.org, role: d.role }, topic: d.topic, message: d.message });
     after(() => notifyNewRequest(ref));
     return { ok: true, ref };
   } catch {
@@ -81,7 +81,7 @@ export async function submitIntroduction(_prev: FormState, form: FormData): Prom
   if (!p.success) return flatten(p.error);
   const d = p.data;
   try {
-    const { ref } = createIntroductionRequest({ person: { name: d.name, email: d.email, phone: d.phone, org: d.org, role: d.role }, projectId: Number(d.projectId), side: d.side, message: d.message });
+    const { ref } = await createIntroductionRequest({ person: { name: d.name, email: d.email, phone: d.phone, org: d.org, role: d.role }, projectId: Number(d.projectId), side: d.side, message: d.message });
     after(() => notifyNewRequest(ref));
     return { ok: true, ref };
   } catch {

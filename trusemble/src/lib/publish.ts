@@ -57,26 +57,26 @@ export function readinessOf(table: Table, row: Row, today = todayIso()): Readine
 }
 
 /** Show a record on the website, or hide it. Showing is refused until the required items are in place. */
-export function setPublished(table: Table, id: number, show: boolean, userId: number, today = todayIso()): { ok: true } | { ok: false; error: string } {
-  const row = get<Row>(`SELECT * FROM ${table} WHERE id = ?`, id);
+export async function setPublished(table: Table, id: number, show: boolean, userId: number, today = todayIso()): Promise<{ ok: true } | { ok: false; error: string }> {
+  const row = await get<Row>(`SELECT * FROM ${table} WHERE id = ?`, id);
   if (!row) return { ok: false, error: 'That record no longer exists.' };
   if (show) {
     const r = readinessOf(table, row, today);
     if (!r.canPublish) return { ok: false, error: `Not ready to show yet. ${r.missingRequired.map((c) => c.fix).join(' ')}` };
     if (row.archived) return { ok: false, error: 'This record is archived. Restore it first.' };
   }
-  tx(() => {
-    run(`UPDATE ${table} SET published = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?`, show ? 1 : 0, id);
-    logActivity(table, id, userId, 'edit', show ? 'Shown on the website' : 'Hidden from the website');
+  await tx(async () => {
+    await run(`UPDATE ${table} SET published = ?, updated_at = now_iso() WHERE id = ?`, show ? 1 : 0, id);
+    await logActivity(table, id, userId, 'edit', show ? 'Shown on the website' : 'Hidden from the website');
   });
   return { ok: true };
 }
 
 /** Someone re-read the program page. Resets the "last looked at" clock. */
-export function markLooked(programId: number, userId: number, today = todayIso()): boolean {
-  if (!get('SELECT 1 FROM programs WHERE id = ?', programId)) return false;
-  run(`UPDATE programs SET checked_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?`, today, programId);
-  logActivity('programs', programId, userId, 'edit', 'Looked at the program page again');
+export async function markLooked(programId: number, userId: number, today = todayIso()): Promise<boolean> {
+  if (!await get('SELECT 1 FROM programs WHERE id = ?', programId)) return false;
+  await run(`UPDATE programs SET checked_at = ?, updated_at = now_iso() WHERE id = ?`, today, programId);
+  await logActivity('programs', programId, userId, 'edit', 'Looked at the program page again');
   return true;
 }
 

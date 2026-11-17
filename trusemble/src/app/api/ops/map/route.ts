@@ -13,11 +13,11 @@ export async function GET(req: NextRequest) {
   const geo = 'lng BETWEEN ? AND ? AND lat BETWEEN ? AND ?';
   const b = [bbox[0], bbox[2], bbox[1], bbox[3]];
   if (layers.includes('projects')) {
-    for (const r of all<{ id: number; name: string; published: number; verification: string; county: string | null; lat: number; lng: number }>(`SELECT id, name, published, verification, county, lat, lng FROM projects WHERE archived = 0 AND lat IS NOT NULL AND ${geo} LIMIT 6000`, ...b))
+    for (const r of await all<{ id: number; name: string; published: number; verification: string; county: string | null; lat: number; lng: number }>(`SELECT id, name, published, verification, county, lat, lng FROM projects WHERE archived = 0 AND lat IS NOT NULL AND ${geo} LIMIT 6000`, ...b))
       features.push({ type: 'Feature', properties: { kind: 'Project', ...r }, geometry: { type: 'Point', coordinates: [r.lng, r.lat] } });
   }
   if (layers.includes('organizations')) {
-    for (const r of all<{ id: number; name: string; published: number; verification: string; county: string | null; lat: number; lng: number }>(`SELECT id, name, published, verification, county, lat, lng FROM organizations WHERE archived = 0 AND lat IS NOT NULL AND ${geo} LIMIT 6000`, ...b))
+    for (const r of await all<{ id: number; name: string; published: number; verification: string; county: string | null; lat: number; lng: number }>(`SELECT id, name, published, verification, county, lat, lng FROM organizations WHERE archived = 0 AND lat IS NOT NULL AND ${geo} LIMIT 6000`, ...b))
       features.push({ type: 'Feature', properties: { kind: 'Organization', ...r }, geometry: { type: 'Point', coordinates: [r.lng, r.lat] } });
   }
   return NextResponse.json({ type: 'FeatureCollection', features }, { headers: { 'Cache-Control': 'private, no-store' } });

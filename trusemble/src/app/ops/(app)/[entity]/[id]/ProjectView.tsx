@@ -11,15 +11,15 @@ import { CheckCard, HistoryCard, PublishCard } from './RecordParts';
 type Row = Record<string, string | number | null>;
 
 /** One project: what it is, where it stands, what money could pay for it, and whether the public can see it. */
-export function ProjectView({ id, row }: { id: number; row: Row }) {
+export async function ProjectView({ id, row }: { id: number; row: Row }) {
   const today = todayIso();
-  const owner = row.owner_org_id ? get<{ id: number; name: string }>('SELECT id, name FROM organizations WHERE id = ?', Number(row.owner_org_id)) : undefined;
-  const people = owner ? all<{ id: number; name: string; title: string | null; email: string | null; phone: string | null; do_not_contact: number }>('SELECT id, name, title, email, phone, do_not_contact FROM contacts WHERE org_id = ? AND archived = 0 ORDER BY name LIMIT 6', owner.id) : [];
-  const matches = all<{ id: number; status: string; reason: string; program_id: number; name: string; run_by: string | null; window_start: string | null; window_end: string | null; award_min: number | null; award_max: number | null; award_text: string | null }>(
+  const owner = row.owner_org_id ? await get<{ id: number; name: string }>('SELECT id, name FROM organizations WHERE id = ?', Number(row.owner_org_id)) : undefined;
+  const people = owner ? await all<{ id: number; name: string; title: string | null; email: string | null; phone: string | null; do_not_contact: number }>('SELECT id, name, title, email, phone, do_not_contact FROM contacts WHERE org_id = ? AND archived = 0 ORDER BY name LIMIT 6', owner.id) : [];
+  const matches = await all<{ id: number; status: string; reason: string; program_id: number; name: string; run_by: string | null; window_start: string | null; window_end: string | null; award_min: number | null; award_max: number | null; award_text: string | null }>(
     `SELECT m.id, m.status, m.reason, pr.id program_id, pr.name, pr.run_by, pr.window_start, pr.window_end, pr.award_min, pr.award_max, pr.award_text FROM matches m JOIN programs pr ON pr.id = m.program_id
      WHERE m.project_id = ? AND m.status != 'dismissed' ORDER BY (m.status = 'accepted') DESC, m.score DESC LIMIT 6`, id);
-  const awards = all<{ id: number; program: string | null; amount_committed: number | null; amount_disbursed: number | null; year: number | null }>('SELECT a.id, pr.name program, a.amount_committed, a.amount_disbursed, a.year FROM awards a LEFT JOIN programs pr ON pr.id = a.program_id WHERE a.project_id = ?', id);
-  const requests = all<{ id: number; ref: string; from_name: string; status: string }>('SELECT id, ref, from_name, status FROM requests WHERE project_id = ? ORDER BY id DESC LIMIT 6', id);
+  const awards = await all<{ id: number; program: string | null; amount_committed: number | null; amount_disbursed: number | null; year: number | null }>('SELECT a.id, pr.name program, a.amount_committed, a.amount_disbursed, a.year FROM awards a LEFT JOIN programs pr ON pr.id = a.program_id WHERE a.project_id = ?', id);
+  const requests = await all<{ id: number; ref: string; from_name: string; status: string }>('SELECT id, ref, from_name, status FROM requests WHERE project_id = ? ORDER BY id DESC LIMIT 6', id);
 
   return (
     <div className="detail-grid" style={{ marginTop: 4 }}>

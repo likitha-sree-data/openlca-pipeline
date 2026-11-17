@@ -12,28 +12,28 @@ export type CheckItem = { slug: CheckSlug; id: number; name: string; source: str
  * funding programs (few, high value), then projects, then organizations; public rows and rows with a source first.
  * Sample rows are never in the queue.
  */
-export function checkQueue(limit = 500): CheckItem[] {
-  return all<CheckItem>(
+export async function checkQueue(limit = 500): Promise<CheckItem[]> {
+  return await all<CheckItem>(
     `SELECT * FROM (
        SELECT 'funding' slug, pr.id, pr.name, s.name source, pr.published, 0 kind FROM programs pr LEFT JOIN sources s ON s.id = pr.source_id WHERE pr.verification = 'unverified' AND pr.archived = 0
        UNION ALL SELECT 'projects', p.id, p.name, s.name, p.published, 1 FROM projects p LEFT JOIN sources s ON s.id = p.source_id WHERE p.verification = 'unverified' AND p.archived = 0
        UNION ALL SELECT 'organizations', o.id, o.name, s.name, o.published, 2 FROM organizations o LEFT JOIN sources s ON s.id = o.source_id WHERE o.verification = 'unverified' AND o.archived = 0
-     ) ORDER BY kind, published DESC, source IS NULL, id LIMIT ?`,
+     ) AS q ORDER BY kind, published DESC, source IS NULL, id LIMIT ?`,
     limit,
   );
 }
 
-export function checkTotal(): number {
-  return scalar<number>(
+export async function checkTotal(): Promise<number> {
+  return await scalar<number>(
     `SELECT (SELECT COUNT(*) FROM programs WHERE verification = 'unverified' AND archived = 0)
           + (SELECT COUNT(*) FROM projects WHERE verification = 'unverified' AND archived = 0)
           + (SELECT COUNT(*) FROM organizations WHERE verification = 'unverified' AND archived = 0)`,
   );
 }
 
-export function checkedByUserToday(userId: number, now = new Date()): number {
+export async function checkedByUserToday(userId: number, now = new Date()): Promise<number> {
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
-  return scalar<number>('SELECT COUNT(DISTINCT entity || entity_id) FROM record_reviews WHERE user_id = ? AND created_at >= ?', userId, start);
+  return await scalar<number>('SELECT COUNT(DISTINCT entity || entity_id) FROM record_reviews WHERE user_id = ? AND created_at >= ?', userId, start);
 }
 
 export type CheckDetail = {
@@ -48,9 +48,9 @@ type Row = Record<string, string | number | null>;
 const put = (out: [string, string][], k: string, v: string | number | null | undefined) => { if (v !== null && v !== undefined && String(v).trim() !== '') out.push([k, String(v)]); };
 
 /** The record in plain words, next to what it says it came from. */
-export function checkDetail(slug: CheckSlug, id: number): CheckDetail | null {
+export async function checkDetail(slug: CheckSlug, id: number): Promise<CheckDetail | null> {
   const table = slug === 'funding' ? 'programs' : slug;
-  const r = get<Row>(`SELECT * FROM ${table} WHERE id = ?`, id);
+  const r = await get<Row>(`SELECT * FROM ${table} WHERE id = ?`, id);
   if (!r) return null;
   const f: [string, string][] = [];
   if (slug === 'projects') {
@@ -78,7 +78,7 @@ export function checkDetail(slug: CheckSlug, id: number): CheckDetail | null {
     put(f, 'Who can apply', r.eligibility);
     put(f, 'Last looked at', r.checked_at ? fmtDate(String(r.checked_at)) : null);
   }
-  const source = r.source_id ? get<{ name: string; url: string | null; description: string | null }>('SELECT name, url, description FROM sources WHERE id = ?', Number(r.source_id)) ?? null : null;
+  const source = r.source_id ? await get<{ name: string; url: string | null; description: string | null }>('SELECT name, url, description FROM sources WHERE id = ?', Number(r.source_id)) ?? null : null;
   const link = (slug === 'projects' ? (r.source_url as string | null) : slug === 'funding' ? (r.url as string | null) : (r.website as string | null)) ?? source?.url ?? null;
   return { name: String(r.name), fields: f, source, sourceRef: (r.source_ref as string | null) ?? null, link };
 }

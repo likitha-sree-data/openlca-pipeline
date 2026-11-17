@@ -12,8 +12,8 @@ export const metadata: Metadata = { title: 'Matches' };
 export default async function MatchesPage({ searchParams }: { searchParams: Promise<{ s?: string }> }) {
   const { s } = await searchParams;
   const status = ['suggested', 'accepted', 'dismissed'].includes(s ?? '') ? (s as string) : 'suggested';
-  const counts = Object.fromEntries(all<{ status: string; n: number }>('SELECT status, COUNT(*) n FROM matches GROUP BY status').map((r) => [r.status, r.n]));
-  const rows = all<{ id: number; score: number; reason: string; project_id: number; project: string; county: string | null; state: string | null; category: string; requested: number | null; program_id: number; program: string; run_by: string | null; award_min: number | null; award_max: number | null; award_text: string | null; decided_at: string | null }>(
+  const counts = Object.fromEntries((await all<{ status: string; n: number }>('SELECT status, COUNT(*) n FROM matches GROUP BY status')).map((r) => [r.status, r.n]));
+  const rows = await all<{ id: number; score: number; reason: string; project_id: number; project: string; county: string | null; state: string | null; category: string; requested: number | null; program_id: number; program: string; run_by: string | null; award_min: number | null; award_max: number | null; award_text: string | null; decided_at: string | null }>(
     `SELECT m.id, m.score, m.reason, p.id project_id, p.name project, p.county, p.state, p.category, p.requested_amount requested, pr.id program_id, pr.name program, pr.run_by, pr.award_min, pr.award_max, pr.award_text, m.decided_at
      FROM matches m JOIN projects p ON p.id = m.project_id JOIN programs pr ON pr.id = m.program_id
      WHERE m.status = ? AND p.archived = 0 ORDER BY m.score DESC, p.name LIMIT 100`, status,

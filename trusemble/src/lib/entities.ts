@@ -75,7 +75,7 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
       (SELECT COUNT(*) FROM projects p WHERE p.owner_org_id = o.id AND p.archived = 0) AS projects,
       (SELECT COUNT(*) FROM contacts c WHERE c.org_id = o.id AND c.archived = 0) AS people`,
     search: ['o.name', 'o.county', 'o.website', 'o.state'],
-    orderBy: 'o.name COLLATE NOCASE',
+    orderBy: 'lower(o.name)',
     fields: [
       { name: 'name', label: 'Name', type: 'text', required: true },
       { name: 'type', label: 'Type', type: 'select', options: ORG_TYPES, required: true },
@@ -139,7 +139,7 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
     from: 'contacts c LEFT JOIN organizations o ON o.id = c.org_id LEFT JOIN users u ON u.id = c.owner_id',
     select: `c.id, c.name, c.title, o.name AS organization, c.org_id, c.decision_role, c.email, c.phone, u.initials AS owner, c.do_not_contact, c.verification, c.archived`,
     search: ['c.name', 'c.email', 'c.title', 'o.name', 'c.phone'],
-    orderBy: 'c.name COLLATE NOCASE',
+    orderBy: 'lower(c.name)',
     fields: [
       { name: 'name', label: 'Name', type: 'text', required: true },
       { name: 'title', label: 'Title', type: 'text' },
@@ -171,7 +171,7 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
       pr.scope, pr.state, pr.counties, pr.url, pr.verification, pr.archived, c.name AS contact_name, c.email AS contact_email, c.phone AS contact_phone,
       (SELECT COUNT(*) FROM awards a WHERE a.program_id = pr.id) AS awards`,
     search: ['pr.name', 'pr.run_by', 'pr.focus', 'pr.eligibility'],
-    orderBy: 'pr.window_end IS NULL, pr.window_end ASC, pr.name COLLATE NOCASE',
+    orderBy: 'pr.window_end IS NULL, pr.window_end ASC, lower(pr.name)',
     fields: [
       { name: 'name', label: 'Program name', type: 'text', required: true },
       { name: 'run_by', label: 'Run by', type: 'text' },
@@ -194,7 +194,7 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
     ],
     filters: [
       { name: 'instrument', label: 'Kind', options: PROGRAM_TYPES, clause: (v) => ({ sql: 'pr.type = ?', params: [v] }) },
-      { name: 'pays_for', label: 'Pays for', options: [], clause: (v) => ({ sql: 'lower(pr.focus) LIKE ?', params: [`%${v.toLowerCase()}%`] }) },
+      { name: 'pays_for', label: 'Pays for', options: [], clause: (v) => ({ sql: 'lower(pr.focus) ILIKE ?', params: [`%${v.toLowerCase()}%`] }) },
       { name: 'available_in', label: 'Available in', options: [], clause: (v) => ({ sql: "(pr.scope = 'national' OR pr.state = ?)", params: [v] }) },
       { name: 'reach', label: 'Where', options: PROGRAM_SCOPES, clause: (v) => ({ sql: 'pr.scope = ?', params: [v] }) },
       { name: 'award_kind', label: 'Awards', options: [['has', 'Has awards on record'], ['none', 'No awards on record']], clause: (v) => v === 'has' ? { sql: 'EXISTS (SELECT 1 FROM awards a WHERE a.program_id = pr.id)', params: [] } : v === 'none' ? { sql: 'NOT EXISTS (SELECT 1 FROM awards a WHERE a.program_id = pr.id)', params: [] } : null },

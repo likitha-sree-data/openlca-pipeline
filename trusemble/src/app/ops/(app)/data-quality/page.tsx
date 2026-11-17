@@ -9,24 +9,24 @@ import { label, ORG_TYPES } from '@/lib/constants';
 
 export const metadata: Metadata = { title: 'Data quality' };
 
-export default function DataQuality() {
-  const issues = all<{ id: number; kind: string; entity: string; entity_id: number; other_id: number | null; field: string | null; existing_value: string | null; incoming_value: string | null; detail: string | null; created_at: string; name: string | null; other: string | null }>(
+export default async function DataQuality() {
+  const issues = await all<{ id: number; kind: string; entity: string; entity_id: number; other_id: number | null; field: string | null; existing_value: string | null; incoming_value: string | null; detail: string | null; created_at: string; name: string | null; other: string | null }>(
     `SELECT i.*, COALESCE((SELECT name FROM organizations WHERE id = i.entity_id AND i.entity = 'organizations'), (SELECT name FROM contacts WHERE id = i.entity_id AND i.entity = 'contacts'), (SELECT name FROM projects WHERE id = i.entity_id AND i.entity = 'projects'), (SELECT from_name FROM requests WHERE id = i.entity_id AND i.entity = 'requests')) name,
             (SELECT name FROM organizations WHERE id = i.other_id) other
      FROM issues i WHERE i.status = 'open' ORDER BY i.id DESC LIMIT 100`);
   const orgMissingWhere = `archived = 0 AND ((website IS NULL OR website = '') OR type = 'other')`;
-  const orgMissingN = scalar<number>(`SELECT COUNT(*) FROM organizations WHERE ${orgMissingWhere}`);
-  const orgMissing = all<{ id: number; name: string; type: string; website: string | null; verification: string }>(`SELECT id, name, type, website, verification FROM organizations WHERE ${orgMissingWhere} ORDER BY name COLLATE NOCASE LIMIT 500`);
-  const missSplit = all<{ v: string; n: number }>(`SELECT verification v, COUNT(*) n FROM (SELECT verification FROM organizations WHERE ${orgMissingWhere} ORDER BY name COLLATE NOCASE LIMIT 500) GROUP BY verification`);
+  const orgMissingN = await scalar<number>(`SELECT COUNT(*) FROM organizations WHERE ${orgMissingWhere}`);
+  const orgMissing = await all<{ id: number; name: string; type: string; website: string | null; verification: string }>(`SELECT id, name, type, website, verification FROM organizations WHERE ${orgMissingWhere} ORDER BY lower(name) LIMIT 500`);
+  const missSplit = await all<{ v: string; n: number }>(`SELECT verification v, COUNT(*) n FROM (SELECT verification FROM organizations WHERE ${orgMissingWhere} ORDER BY lower(name) LIMIT 500) AS m GROUP BY verification`);
   const ms = (k: string) => missSplit.find((m) => m.v === k)?.n ?? 0;
-  const noOrg = all<{ id: number; name: string }>('SELECT id, name FROM contacts WHERE archived = 0 AND org_id IS NULL ORDER BY name LIMIT 100');
-  const noOrgN = scalar<number>('SELECT COUNT(*) FROM contacts WHERE archived = 0 AND org_id IS NULL');
-  const offMapN = scalar<number>('SELECT COUNT(*) FROM projects WHERE archived = 0 AND published = 1 AND lat IS NULL');
-  const offMap = all<{ id: number; name: string; county: string | null }>('SELECT id, name, county FROM projects WHERE archived = 0 AND published = 1 AND lat IS NULL ORDER BY name COLLATE NOCASE LIMIT 500');
-  const recheck = all<{ id: number; name: string; last_fetched_at: string | null; why: string }>(
+  const noOrg = await all<{ id: number; name: string }>('SELECT id, name FROM contacts WHERE archived = 0 AND org_id IS NULL ORDER BY name LIMIT 100');
+  const noOrgN = await scalar<number>('SELECT COUNT(*) FROM contacts WHERE archived = 0 AND org_id IS NULL');
+  const offMapN = await scalar<number>('SELECT COUNT(*) FROM projects WHERE archived = 0 AND published = 1 AND lat IS NULL');
+  const offMap = await all<{ id: number; name: string; county: string | null }>('SELECT id, name, county FROM projects WHERE archived = 0 AND published = 1 AND lat IS NULL ORDER BY lower(name) LIMIT 500');
+  const recheck = await all<{ id: number; name: string; last_fetched_at: string | null; why: string }>(
     `SELECT s.id, s.name, s.last_fetched_at,
        CASE WHEN (SELECT status FROM source_runs WHERE source_id = s.id ORDER BY id DESC LIMIT 1) = 'error' THEN 'Last run failed' ELSE 'Not fetched in 30 days' END why
-     FROM sources s WHERE s.is_private = 0 AND s.last_fetched_at IS NOT NULL AND (s.last_fetched_at < strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days')
+     FROM sources s WHERE s.is_private = 0 AND s.last_fetched_at IS NOT NULL AND (s.last_fetched_at < now_iso_minus(interval '30 days')
        OR (SELECT status FROM source_runs WHERE source_id = s.id ORDER BY id DESC LIMIT 1) = 'error') ORDER BY s.last_fetched_at LIMIT 100`);
   const tiles: [string, number, boolean][] = [['Problems to look at', issues.length, false], ['Groups missing details', Math.min(orgMissingN, 500), orgMissingN > 0], ['Contacts with no organization', noOrgN, noOrgN > 0], ['Projects not on the map', Math.min(offMapN, 500), offMapN > 0], ['Sources to re-check', recheck.length, recheck.length > 0]];
   return (

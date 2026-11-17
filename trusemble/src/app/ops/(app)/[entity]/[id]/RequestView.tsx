@@ -23,13 +23,13 @@ function plainValue(k: string, v: unknown): string {
 const PAYLOAD_LABELS: Record<string, string> = { needs: 'What they need', homes: 'Homes', timeline: 'When', state: 'State', county: 'County', category: 'Kind of work', topic: 'Topic', side: 'They are a' };
 
 /** One request, built around the job: read it, set the next step, move it forward, make the introduction. */
-export function RequestView({ id, users }: { id: number; users: [string, string][] }) {
-  const r = get<R>('SELECT * FROM requests WHERE id = ?', id)!;
-  const org = r.org_id ? get<{ id: number; name: string }>('SELECT id, name FROM organizations WHERE id = ?', r.org_id) : undefined;
-  const contact = r.contact_id ? get<{ id: number; name: string; title: string | null; email: string | null; phone: string | null; do_not_contact: number }>('SELECT id, name, title, email, phone, do_not_contact FROM contacts WHERE id = ?', r.contact_id) : undefined;
-  const project = r.project_id ? get<{ id: number; name: string; county: string | null; state: string | null; published: number }>('SELECT id, name, county, state, published FROM projects WHERE id = ?', r.project_id) : undefined;
-  const activity = all<{ id: number; kind: string; body: string; created_at: string; user: string | null }>(
-    `SELECT a.id, a.kind, a.body, a.created_at, u.name user FROM activities a LEFT JOIN users u ON u.id = a.user_id WHERE a.entity = 'requests' AND a.entity_id = ? ORDER BY a.id DESC LIMIT 40`, id,
+export async function RequestView({ id, users }: { id: number; users: [string, string][] }) {
+  const r = (await get<R>('SELECT * FROM requests WHERE id = ?', id))!;
+  const org = r.org_id ? await get<{ id: number; name: string }>('SELECT id, name FROM organizations WHERE id = ?', r.org_id) : undefined;
+  const contact = r.contact_id ? await get<{ id: number; name: string; title: string | null; email: string | null; phone: string | null; do_not_contact: number }>('SELECT id, name, title, email, phone, do_not_contact FROM contacts WHERE id = ?', r.contact_id) : undefined;
+  const project = r.project_id ? await get<{ id: number; name: string; county: string | null; state: string | null; published: number }>('SELECT id, name, county, state, published FROM projects WHERE id = ?', r.project_id) : undefined;
+  const activity = await all<{ id: number; kind: string; body: string; created_at: string; user: string | null }>(
+    `SELECT a.id, a.kind, a.body, a.created_at, u.name AS "user" FROM activities a LEFT JOIN users u ON u.id = a.user_id WHERE a.entity = 'requests' AND a.entity_id = ? ORDER BY a.id DESC LIMIT 40`, id,
   );
   const payload = (() => { try { return r.payload ? (JSON.parse(r.payload) as Record<string, unknown>) : null; } catch { return null; } })();
   const introLog = r.status === 'intro_made' ? activity.find((a) => a.body.startsWith('Introduction made:')) : undefined;

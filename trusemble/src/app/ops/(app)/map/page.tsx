@@ -14,15 +14,15 @@ export default async function OpsMapPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const layers = (sp.layers ?? 'projects,organizations').split(',').filter((l) => ['projects', 'organizations'].includes(l));
   const useP = layers.includes('projects'), useO = layers.includes('organizations');
-  const nP = scalar<number>('SELECT COUNT(*) FROM projects WHERE archived = 0');
-  const nO = scalar<number>('SELECT COUNT(*) FROM organizations WHERE archived = 0');
-  const unmapped = (useP ? scalar<number>('SELECT COUNT(*) FROM projects WHERE archived = 0 AND lat IS NULL') : 0) + (useO ? scalar<number>('SELECT COUNT(*) FROM organizations WHERE archived = 0 AND lat IS NULL') : 0);
-  const rows = all<{ kind: string; id: number; name: string; verification: string; sub: string | null; county: string | null }>(
+  const nP = await scalar<number>('SELECT COUNT(*) FROM projects WHERE archived = 0');
+  const nO = await scalar<number>('SELECT COUNT(*) FROM organizations WHERE archived = 0');
+  const unmapped = (useP ? await scalar<number>('SELECT COUNT(*) FROM projects WHERE archived = 0 AND lat IS NULL') : 0) + (useO ? await scalar<number>('SELECT COUNT(*) FROM organizations WHERE archived = 0 AND lat IS NULL') : 0);
+  const rows = await all<{ kind: string; id: number; name: string; verification: string; sub: string | null; county: string | null }>(
     `SELECT * FROM (
-       ${useP ? "SELECT 'Project' kind, id, name, verification, stage sub, county FROM projects WHERE archived = 0" : "SELECT 'x' kind, 0 id, '' name, '' verification, '' sub, '' county WHERE 0"}
+       ${useP ? "SELECT 'Project' kind, id, name, verification, stage sub, county FROM projects WHERE archived = 0" : "SELECT 'x' kind, 0 id, '' name, '' verification, '' sub, '' county WHERE false"}
        UNION ALL
-       ${useO ? "SELECT 'Organization', id, name, verification, type, county FROM organizations WHERE archived = 0" : "SELECT 'x', 0, '', '', '', '' WHERE 0"}
-     ) ORDER BY name COLLATE NOCASE LIMIT 100`,
+       ${useO ? "SELECT 'Organization', id, name, verification, type, county FROM organizations WHERE archived = 0" : "SELECT 'x', 0, '', '', '', '' WHERE false"}
+     ) AS q ORDER BY lower(name) LIMIT 100`,
   );
   const href = (l: string[]) => `/ops/map?layers=${l.join(',')}`;
   return (

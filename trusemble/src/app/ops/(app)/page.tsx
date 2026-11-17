@@ -16,9 +16,9 @@ type Task = { n: number; text: string; cta: string; href: string; tone?: 'warn' 
 
 export default async function Today() {
   const user = await requireUser();
-  const n = needsYou();
-  const o = overview();
-  const share = checkedShare();
+  const n = await needsYou();
+  const o = await overview();
+  const share = await checkedShare();
   const pct = share.total ? Math.round((share.checked / share.total) * 100) : 0;
 
   const candidates: Task[] = [
@@ -52,7 +52,7 @@ export default async function Today() {
             ))}
           </ul>
         )}
-        <p className="small muted" style={{ marginTop: 10 }}>You checked {checkedByUserToday(user.id)} {checkedByUserToday(user.id) === 1 ? 'record' : 'records'} today.</p>
+        <p className="small muted" style={{ marginTop: 10 }}>You checked {await checkedByUserToday(user.id)} {await checkedByUserToday(user.id) === 1 ? 'record' : 'records'} today.</p>
       </section>
 
       {n.newFromWebsite.length > 0 && (

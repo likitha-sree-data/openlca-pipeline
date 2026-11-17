@@ -59,15 +59,15 @@ export const MIN_SCORE = 6;
 export const MAX_PER_PROJECT = 3;
 
 /** Recompute suggestions. Decided rows (accepted/dismissed) are kept; stale suggestions are replaced. */
-export function generateMatches(now = todayIso()): { added: number; kept: number } {
-  const projects = all<P>(
+export async function generateMatches(now = todayIso()): Promise<{ added: number; kept: number }> {
+  const projects = await all<P>(
     `SELECT id, name, category, county, state, requested_amount, stage FROM projects
      WHERE archived = 0 AND stage IN ('planning','seeking_funding')`,
   );
-  const programs = all<Pr>(`SELECT * FROM programs WHERE archived = 0`);
+  const programs = await all<Pr>(`SELECT * FROM programs WHERE archived = 0`);
   let added = 0;
-  tx(() => {
-    run(`DELETE FROM matches WHERE status = 'suggested'`);
+  await tx(async () => {
+    await run(`DELETE FROM matches WHERE status = 'suggested'`);
     for (const p of projects) {
       const scored = programs
         .map((pr) => scoreMatch(p, pr, now))
@@ -75,7 +75,7 @@ export function generateMatches(now = todayIso()): { added: number; kept: number
         .sort((a, b) => b.score - a.score)
         .slice(0, MAX_PER_PROJECT);
       for (const s of scored) {
-        const r = run(
+        const r = await run(
           `INSERT INTO matches (project_id, program_id, score, reason) VALUES (?, ?, ?, ?)
            ON CONFLICT(project_id, program_id) DO NOTHING`,
           p.id, s.program_id, s.score, s.reason,
@@ -84,6 +84,6 @@ export function generateMatches(now = todayIso()): { added: number; kept: number
       }
     }
   });
-  const kept = get<{ n: number }>(`SELECT COUNT(*) n FROM matches WHERE status != 'suggested'`)?.n ?? 0;
+  const kept = (await get<{ n: number }>(`SELECT COUNT(*) n FROM matches WHERE status != 'suggested'`))?.n ?? 0;
   return { added, kept };
 }

@@ -31,7 +31,7 @@ export function quickFilters(entity: string, today: string, userId: number): Rec
         communities: { label: 'Communities', sql: "o.type IN ('firewise_community','hoa')", params: [] },
         nowebsite: { label: 'No website', sql: "(o.website IS NULL OR o.website = '')", params: [] },
         unsorted: { label: 'Kind not set', sql: "o.type = 'other'", params: [] },
-        dupes: { label: 'May be listed twice', sql: "EXISTS (SELECT 1 FROM organizations o2 WHERE o2.name_key = o.name_key AND o2.id != o.id AND o2.archived = 0 AND o.name_key != '' AND (o.state IS o2.state OR o.state IS NULL OR o2.state IS NULL) AND (o.county IS o2.county OR o.county IS NULL OR o2.county IS NULL))", params: [] },
+        dupes: { label: 'May be listed twice', sql: "EXISTS (SELECT 1 FROM organizations o2 WHERE o2.name_key = o.name_key AND o2.id != o.id AND o2.archived = 0 AND o.name_key != '' AND (o.state IS NOT DISTINCT FROM o2.state OR o.state IS NULL OR o2.state IS NULL) AND (o.county IS NOT DISTINCT FROM o2.county OR o.county IS NULL OR o2.county IS NULL))", params: [] },
       };
     case 'contacts':
       return {

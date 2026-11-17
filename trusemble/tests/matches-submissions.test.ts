@@ -23,45 +23,45 @@ describe('match scoring', () => {
 });
 
 describe('generateMatches', () => {
-  beforeEach(() => { freshDb(); });
-  it('keeps decisions when refreshed and replaces stale suggestions', () => {
-    run(`INSERT INTO programs (id, name, name_key, type, focus, scope, state, counties, window_end, verification) VALUES (1, 'P', 'p', 'grant', 'Fuels reduction', 'counties', 'OR', 'Deschutes', '2027-01-01', 'unverified')`);
-    run(`INSERT INTO projects (id, name, name_key, stage, category, county, state) VALUES (1, 'T', 't', 'seeking_funding', 'fuels_reduction', 'Deschutes County', 'OR')`);
-    expect(generateMatches(today).added).toBe(1);
-    run(`UPDATE matches SET status = 'accepted'`);
-    expect(generateMatches(today).added).toBe(0);
-    expect(all('SELECT * FROM matches')).toHaveLength(1);
-    expect(get<{ status: string }>('SELECT status FROM matches')!.status).toBe('accepted');
+  beforeEach(async () => { await freshDb(); });
+  it('keeps decisions when refreshed and replaces stale suggestions', async () => {
+    await run(`INSERT INTO programs (id, name, name_key, type, focus, scope, state, counties, window_end, verification) VALUES (1, 'P', 'p', 'grant', 'Fuels reduction', 'counties', 'OR', 'Deschutes', '2027-01-01', 'unverified')`);
+    await run(`INSERT INTO projects (id, name, name_key, stage, category, county, state) VALUES (1, 'T', 't', 'seeking_funding', 'fuels_reduction', 'Deschutes County', 'OR')`);
+    expect((await generateMatches(today)).added).toBe(1);
+    await run(`UPDATE matches SET status = 'accepted'`);
+    expect((await generateMatches(today)).added).toBe(0);
+    expect(await all('SELECT * FROM matches')).toHaveLength(1);
+    expect((await get<{ status: string }>('SELECT status FROM matches'))!.status).toBe('accepted');
   });
 });
 
 describe('public submissions', () => {
-  beforeEach(() => { freshDb(); });
+  beforeEach(async () => { await freshDb(); });
   const person = { name: 'Pat Lee', email: 'Pat@Example.org', phone: '555', org: 'Ridge HOA', role: 'Chair' };
 
-  it('stores a funding request as private, unverified rows and a new request', () => {
-    const { ref } = createFundingRequest({ person, projectName: 'Ridge fuels break', description: 'Thin 40 acres around the community.', state: 'OR', county: 'Deschutes', category: 'fuels_reduction', needs: ['Funding'], amount: 75000 });
+  it('stores a funding request as private, unverified rows and a new request', async () => {
+    const { ref } = await createFundingRequest({ person, projectName: 'Ridge fuels break', description: 'Thin 40 acres around the community.', state: 'OR', county: 'Deschutes', category: 'fuels_reduction', needs: ['Funding'], amount: 75000 });
     expect(ref).toMatch(/^TS-\d{4}-0001$/);
-    const p = get<{ published: number; stage: string; verification: string }>('SELECT published, stage, verification FROM projects')!;
+    const p = (await get<{ published: number; stage: string; verification: string }>('SELECT published, stage, verification FROM projects'))!;
     expect(p).toMatchObject({ published: 0, stage: 'seeking_funding', verification: 'unverified' });
-    const r = get<{ kind: string; status: string; origin: string; amount_text: string }>('SELECT * FROM requests')!;
+    const r = (await get<{ kind: string; status: string; origin: string; amount_text: string }>('SELECT * FROM requests'))!;
     expect(r).toMatchObject({ kind: 'funding_request', status: 'new', origin: 'public_form', amount_text: '$75,000' });
-    expect(get<{ email: string }>('SELECT email FROM contacts')!.email).toBe('pat@example.org');
-    expect(get<{ published: number }>('SELECT published FROM organizations')!.published).toBe(0);
+    expect((await get<{ email: string }>('SELECT email FROM contacts'))!.email).toBe('pat@example.org');
+    expect((await get<{ published: number }>('SELECT published FROM organizations'))!.published).toBe(0);
   });
 
-  it('reuses the contact and organization on a second submission', () => {
-    createInquiry({ person, topic: 'Something else', message: 'Hello there, team.' });
-    createInquiry({ person, topic: 'Something else', message: 'Hello again, team.' });
-    expect(all('SELECT 1 FROM contacts')).toHaveLength(1);
-    expect(all('SELECT 1 FROM organizations')).toHaveLength(1);
-    expect(all('SELECT 1 FROM requests')).toHaveLength(2);
+  it('reuses the contact and organization on a second submission', async () => {
+    await createInquiry({ person, topic: 'Something else', message: 'Hello there, team.' });
+    await createInquiry({ person, topic: 'Something else', message: 'Hello again, team.' });
+    expect(await all('SELECT 1 FROM contacts')).toHaveLength(1);
+    expect(await all('SELECT 1 FROM organizations')).toHaveLength(1);
+    expect(await all('SELECT 1 FROM requests')).toHaveLength(2);
   });
 
-  it('only allows introductions to published projects', () => {
-    run(`INSERT INTO projects (id, name, name_key, published) VALUES (1, 'Hidden', 'hidden', 0), (2, 'Shown', 'shown', 1)`);
-    expect(() => createIntroductionRequest({ person, projectId: 1, side: 'Funder', message: '' })).toThrow();
-    expect(createIntroductionRequest({ person, projectId: 2, side: 'Funder', message: 'Interested' }).ref).toBeTruthy();
-    expect(get<{ project_id: number }>('SELECT project_id FROM requests')!.project_id).toBe(2);
+  it('only allows introductions to published projects', async () => {
+    await run(`INSERT INTO projects (id, name, name_key, published) VALUES (1, 'Hidden', 'hidden', 0), (2, 'Shown', 'shown', 1)`);
+    await expect(createIntroductionRequest({ person, projectId: 1, side: 'Funder', message: '' })).rejects.toThrow();
+    expect((await createIntroductionRequest({ person, projectId: 2, side: 'Funder', message: 'Interested' })).ref).toBeTruthy();
+    expect((await get<{ project_id: number }>('SELECT project_id FROM requests'))!.project_id).toBe(2);
   });
 });

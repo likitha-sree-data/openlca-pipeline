@@ -5,8 +5,8 @@ import { all } from '@/lib/db';
 
 export const metadata: Metadata = { title: 'Funding calculator', description: 'Estimate what defensible space would cost your community and how far a grant goes.' };
 
-export default function CalculatorPage() {
-  const benchmarks = all<{ name: string; cost_per_acre: number }>('SELECT name, cost_per_acre FROM calculator_benchmarks ORDER BY sort, id').map((b) => ({ name: b.name, costPerAcre: b.cost_per_acre }));
+export default async function CalculatorPage() {
+  const benchmarks = (await all<{ name: string; cost_per_acre: number }>('SELECT name, cost_per_acre FROM calculator_benchmarks ORDER BY sort, id')).map((b) => ({ name: b.name, costPerAcre: b.cost_per_acre }));
   return (
     <div className="container" style={{ paddingBottom: 48 }}>
       <div className="page-title">
