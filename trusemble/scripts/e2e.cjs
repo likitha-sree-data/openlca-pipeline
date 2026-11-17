@@ -165,6 +165,47 @@ const check = (cond, m) => (cond ? pass(m) : fail(m));
   await go('/ops/requests?show=mine');
   check((await body()).includes('Introduced') || (await body()).includes('E2E: send the program list'), 'the Mine filter shows requests assigned to me');
 
+  // a project: cannot be shown until it says what the work is; showing and hiding changes the public site
+  await go('/ops/projects/new');
+  await page.locator('#name').fill(`E2E Ridge break ${RUN}`);
+  await page.locator('#county').fill('Deschutes County');
+  await page.locator('#state').selectOption('OR');
+  await page.getByRole('button', { name: /Create project/ }).click();
+  await page.waitForURL(/\/ops\/projects\/\d+/);
+  const projectId = page.url().match(/projects\/(\d+)/)[1];
+  check((await body()).includes('Hidden from the website') && (await body()).includes('Says what the work is'), 'a new project starts hidden, with a plain checklist');
+  check(await page.getByRole('button', { name: 'Show it on the website' }).isDisabled(), 'it cannot be shown without a description');
+  check((await page.request.get(`${BASE}/projects/${projectId}`)).status() === 404, 'the public cannot see it yet');
+  await page.getByText('Edit all the details').click();
+  await page.locator('#description').fill('Thin forty acres of ponderosa around the community and clear the access road.');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.getByText('Saved.').first().waitFor({ timeout: 5000 });
+  await page.reload();
+  check(await page.getByRole('button', { name: 'Show it on the website' }).isEnabled(), 'once it has a description it can be shown');
+  await page.getByRole('button', { name: 'Show it on the website' }).click();
+  await page.getByText('It is now on the website.').waitFor({ timeout: 5000 });
+  check((await page.request.get(`${BASE}/projects/${projectId}`)).status() === 200, 'the public page appears');
+  await page.getByRole('button', { name: 'Seeking funding' }).click();
+  await page.waitForTimeout(800);
+  check((await page.locator('#stand').locator('xpath=..').innerText()).includes('Seeking funding'), 'one click changes where the project stands');
+  await page.getByRole('button', { name: 'Hide it from the website' }).click();
+  await page.getByText('It is hidden from the website.').waitFor({ timeout: 5000 });
+  check((await page.request.get(`${BASE}/projects/${projectId}`)).status() === 404, 'hiding removes the public page');
+  await go('/ops/projects?show=hidden');
+  check((await body()).includes(`E2E Ridge break ${RUN}`), 'the Hidden filter lists it');
+  await shot('ops-project', false);
+
+  // a funding program: is it still current, and who could use it
+  await go('/ops/funding?show=open');
+  check((await body()).includes('Landscape Scale Restoration'), 'the Open now filter finds programs that are open');
+  await page.getByRole('link', { name: /Landscape Scale Restoration Grant Program for Tribes/ }).first().click();
+  await page.waitForURL(/\/ops\/funding\/\d+/);
+  check((await body()).includes('Is this still current?') && (await body()).includes('The facts'), 'a program page shows the facts and whether it is current');
+  await page.getByRole('button', { name: 'I looked at the program page today' }).click();
+  await page.waitForTimeout(900);
+  check((await body()).includes('Looked at the program page today'), 'one click records that someone looked at the program page');
+  await shot('ops-program', false);
+
   // check the data: one record, side by side with its source
   await go('/ops/check');
   const waiting = async () => Number(((await body()).match(/([\d,]+) waiting/) || [])[1].replace(/,/g, ''));

@@ -7,12 +7,14 @@ import { Prio, StatusPill, VerifPill } from '@/components/ops/ui';
 import { EntityForm } from '@/components/ops/EntityForm';
 import { entityBySlug, type EntityCfg } from '@/lib/entities';
 import { getRow, userOptions } from '@/lib/crud';
-import { addNoteAction, archiveAction, moveAction, saveEntity, unverifyAction, verifyAction } from '@/app/ops/actions';
+import { addNoteAction, archiveAction, saveEntity, unverifyAction, verifyAction } from '@/app/ops/actions';
 import { all, get } from '@/lib/db';
 import { safeHref } from '@/lib/safe-url';
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/format';
 import { label, PROJECT_STAGES, REQUEST_KINDS } from '@/lib/constants';
 import { RequestView } from './RequestView';
+import { ProjectView } from './ProjectView';
+import { ProgramView } from './ProgramView';
 
 type Row = Record<string, string | number | null>;
 
@@ -64,9 +66,9 @@ export default async function EntityDetail({ params, searchParams }: { params: P
       </div>
       {sp.created && <div className="alert ok" role="status" style={{ margin: '12px 0' }}>Created. You can keep editing below.</div>}
 
-      {cfg.key === 'requests' ? (
+      {cfg.key === 'requests' || cfg.key === 'projects' || cfg.key === 'programs' ? (
         <>
-          <RequestView id={rid} users={userOptions()} />
+          {cfg.key === 'requests' ? <RequestView id={rid} users={userOptions()} /> : cfg.key === 'projects' ? <ProjectView id={rid} row={row} /> : <ProgramView id={rid} row={row} />}
           <details className="card" style={{ marginTop: 16 }}>
             <summary style={{ cursor: 'pointer', fontWeight: 700 }}>Edit all the details</summary>
             <div style={{ marginTop: 14 }}><EntityForm fields={cfg.fields} values={row} refLabels={refLabels} userOpts={userOptions()} action={saveEntity.bind(null, cfg.slug, rid)} submitLabel="Save changes" /></div>
@@ -95,17 +97,6 @@ export default async function EntityDetail({ params, searchParams }: { params: P
                 </form>
               )}
               {source && <p className="small" style={{ marginTop: 12 }}>Source: {safeHref(source.url) ? <a className="link" href={safeHref(source.url)!} target="_blank" rel="noopener noreferrer">{source.name}</a> : source.name}</p>}
-            </section>
-          )}
-          {cfg.key === 'projects' && (
-            <section className="card" style={{ marginTop: 0 }}>
-              <h2 style={{ fontSize: 16 }}>Where it stands</h2>
-              <form action={moveAction.bind(null, cfg.slug, rid)} className="row" style={{ marginTop: 10 }}>
-                <select name="to" className="select" style={{ flex: 1 }} defaultValue={String(row.stage)} aria-label="Move to">
-                  {PROJECT_STAGES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-                <button className="btn sm">Move</button>
-              </form>
             </section>
           )}
           <Related cfg={cfg} id={rid} row={row} />

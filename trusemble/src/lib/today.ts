@@ -20,7 +20,9 @@ export function needsYou(today = todayIso()) {
     `SELECT id, name, window_end FROM programs WHERE archived = 0 AND window_end >= ? AND window_end <= ? ORDER BY window_end LIMIT 5`, today, addDays(today, 30),
   ).map((p) => ({ ...p, days: daysBetween(today, p.window_end) }));
   const suggestions = scalar<number>(`SELECT COUNT(*) FROM matches WHERE status = 'suggested'`);
-  return { newFromWebsite, newFromWebsiteTotal, overdue, dueSoon, noNextStep, toCheck, problems, closing, suggestions };
+  const readyToShow = scalar<number>(`SELECT COUNT(*) FROM projects WHERE archived = 0 AND published = 0 AND verification != 'demo' AND county IS NOT NULL AND county != '' AND state IS NOT NULL AND length(description) >= 20`);
+  const staleProgramPages = scalar<number>(`SELECT COUNT(*) FROM programs WHERE archived = 0 AND published = 1 AND verification != 'demo' AND (checked_at IS NULL OR checked_at < ?)`, addDays(today, -90));
+  return { readyToShow, staleProgramPages, newFromWebsite, newFromWebsiteTotal, overdue, dueSoon, noNextStep, toCheck, problems, closing, suggestions };
 }
 
 export function checkedShare(): { checked: number; total: number } {

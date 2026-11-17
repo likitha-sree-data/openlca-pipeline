@@ -14,6 +14,7 @@ import { whereLabel } from '@/lib/crud';
 import { scheduleAction, moveAction } from '@/app/ops/actions';
 import { get } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { quickFilters } from '@/lib/quick-filters';
 import { safeHref } from '@/lib/safe-url';
 
 type Row = Record<string, string | number | null>;
@@ -23,6 +24,14 @@ export async function generateMetadata({ params }: { params: Promise<{ entity: s
   const cfg = entityBySlug((await params).entity);
   return { title: cfg ? cfg.plural[0].toUpperCase() + cfg.plural.slice(1) : 'Not found' };
 }
+
+const SEARCH_HINT: Record<string, string> = {
+  requests: 'Search by name, reference or next step',
+  projects: 'Search by project, owner or county',
+  organizations: 'Search by name, county or website',
+  contacts: 'Search by name, email or organization',
+  programs: 'Search by program, who runs it or what it pays for',
+};
 
 const TABS: [string, string, string][] = [['all', 'All', ''], ['new', 'New', 'new'], ['conversation', 'Talking', 'qualified'], ['progress', 'Working on it', 'matching'], ['intro', 'Introduced', 'intro_made'], ['closed', 'Closed', 'closed']];
 
@@ -38,13 +47,9 @@ export default async function EntityList({ params, searchParams }: { params: Pro
   const view = sp.view === 'board' && (cfg.key === 'requests' || cfg.key === 'projects') ? 'board' : 'table';
   const me = await currentUser();
   const today = todayIso();
-  const SHOW: Record<string, { sql: string; params: (string | number)[] }> = {
-    mine: { sql: "r.owner_id = ? AND r.status != 'closed'", params: [me?.id ?? -1] },
-    nobody: { sql: "r.owner_id IS NULL AND r.status != 'closed'", params: [] },
-    overdue: { sql: "r.next_action_date < ? AND r.status != 'closed'", params: [today] },
-  };
-  const show = cfg.key === 'requests' && sp.show && SHOW[sp.show] ? sp.show : undefined;
-  const { rows, total, counts } = listRows<Row>(cfg, { q: sp.q, verification: sp.v, filters, tab: sp.tab, extra: show ? SHOW[show] : undefined, limit: view === 'board' ? 300 : limit });
+  const quick = quickFilters(cfg.key, today, me?.id ?? -1);
+  const show = sp.show && quick[sp.show] ? sp.show : undefined;
+  const { rows, total, counts } = listRows<Row>(cfg, { q: sp.q, verification: sp.v, filters, tab: sp.tab, extra: show ? quick[show] : undefined, limit: view === 'board' ? 300 : limit });
   const shown = needsSchedule ? rows.filter((r) => !r.next_action_date && r.status !== 'closed') : rows;
   const users = userOptions();
   const qs = (patch: Record<string, string | undefined>) => {
@@ -75,9 +80,10 @@ export default async function EntityList({ params, searchParams }: { params: Pro
         </nav>
       )}
 
-      {cfg.key === 'requests' && (
-        <div className="seg" role="group" aria-label="Whose" style={{ marginBottom: 6 }}>
-          {([[undefined, 'Everyone'], ['mine', 'Mine'], ['nobody', 'Nobody yet'], ['overdue', 'Overdue']] as const).map(([k, l]) => <Link key={l} href={qs({ show: k })} className={show === k ? 'on' : ''}>{l}</Link>)}
+      {Object.keys(quick).length > 0 && (
+        <div className="seg" role="group" aria-label="Quick filters" style={{ marginBottom: 6, flexWrap: 'wrap' }}>
+          <Link href={qs({ show: undefined })} className={!show ? 'on' : ''}>{cfg.key === 'requests' ? 'Everyone' : 'All'}</Link>
+          {Object.entries(quick).map(([k, q]) => <Link key={k} href={qs({ show: k })} className={show === k ? 'on' : ''}>{q.label}</Link>)}
         </div>
       )}
       <AutoForm className="toolbar">
@@ -87,7 +93,7 @@ export default async function EntityList({ params, searchParams }: { params: Pro
         {sp.show && <input type="hidden" name="show" value={sp.show} />}
         {sp.needs && <input type="hidden" name="needs" value={sp.needs} />}
         <label className="sr-only" htmlFor="q">Search</label>
-        <div className="search" style={{ position: 'relative' }}><Search size={16} aria-hidden style={{ position: 'absolute', left: 14, top: 13, color: 'var(--muted)' }} /><input id="q" name="q" defaultValue={sp.q} className="input" style={{ paddingLeft: 36, width: '100%' }} placeholder={`Search ${cfg.search.map((s) => s.split('.')[1]).slice(0, 3).join(', ')}`} /></div>
+        <div className="search" style={{ position: 'relative' }}><Search size={16} aria-hidden style={{ position: 'absolute', left: 14, top: 13, color: 'var(--muted)' }} /><input id="q" name="q" defaultValue={sp.q} className="input" style={{ paddingLeft: 36, width: '100%' }} placeholder={SEARCH_HINT[cfg.key]} /></div>
         {cfg.key !== 'requests' && <div className="seg" role="group" aria-label="Verification">
           {[['', 'All'], ['verified', 'Checked'], ['unverified', 'Not yet checked'], ['demo', 'Sample']].map(([v, l]) => <Link key={v} href={qs({ v: v || undefined })} className={(sp.v ?? '') === v ? 'on' : ''}>{l}</Link>)}
         </div>}
@@ -96,7 +102,7 @@ export default async function EntityList({ params, searchParams }: { params: Pro
           const cur = filters[f.name] ?? (f.name === 'archived' ? 'any' : '');
           return (
             <select key={f.name} name={f.name} className="select" defaultValue={cur} aria-label={f.label}>
-              <option value={f.name === 'archived' ? 'any' : ''}>{f.label}: {f.name === 'archived' ? 'any' : 'any'}</option>
+              <option value={f.name === 'archived' ? 'any' : ''}>{f.name === 'archived' ? 'Active and archived' : `${f.label}: any`}</option>
               {f.name === 'owner' && users.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>

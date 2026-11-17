@@ -51,7 +51,8 @@ export function scoreMatch(p: P, pr: Pr, today: string): Scored | null {
     if (p.requested_amount <= pr.award_max) { score += 1; why.push('request fits the award size'); }
     else if (p.requested_amount > pr.award_max * 3) { score -= 1; why.push('request is well above the usual award'); }
   }
-  return { program_id: pr.id, score, reason: why.join('; ') + '.' };
+  const sentence = why.join('; ') + '.';
+  return { program_id: pr.id, score, reason: sentence[0].toUpperCase() + sentence.slice(1) };
 }
 
 export const MIN_SCORE = 6;

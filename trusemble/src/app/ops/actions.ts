@@ -20,6 +20,7 @@ import { buildPlan, type Mapping } from '@/lib/import/plan';
 import { isRealDate, todayIso } from '@/lib/format';
 import { alertChannels, sendAlert } from '@/lib/notify';
 import { markIntroduced, setNextStep } from '@/lib/requests';
+import { markLooked, setPublished } from '@/lib/publish';
 
 export type ActionState = { ok?: boolean; message?: string; error?: string; fieldErrors?: Record<string, string>; values?: Record<string, string> };
 
@@ -438,4 +439,21 @@ export async function introducedAction(id: number, _prev: ActionState, fd: FormD
   revalidatePath(`/ops/requests/${id}`);
   revalidatePath('/ops');
   return { ok: true, message: 'Introduction recorded. A follow-up is set for next week.' };
+}
+
+// ---------------------------------------------------------------- show or hide on the website
+export async function publishAction(table: 'projects' | 'programs', id: number, show: boolean, _prev: ActionState, _fd: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  if (table !== 'projects' && table !== 'programs') return { error: 'Unknown record type.' };
+  const r = setPublished(table, id, show, user.id);
+  if (!r.ok) return { error: r.error };
+  revalidatePath(`/ops/${table === 'programs' ? 'funding' : 'projects'}/${id}`);
+  revalidatePath('/ops');
+  return { ok: true, message: show ? 'It is now on the website.' : 'It is hidden from the website.' };
+}
+
+export async function lookedAction(id: number) {
+  const user = await requireUser();
+  markLooked(id, user.id);
+  revalidatePath(`/ops/funding/${id}`);
 }

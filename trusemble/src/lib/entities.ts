@@ -54,8 +54,8 @@ const yesNo: Opt[] = [['yes', 'Yes'], ['no', 'No']];
 
 const archivedFilter = (a: string): FilterDef => ({
   name: 'archived',
-  label: 'Archived',
-  options: [['no', 'No'], ['yes', 'Yes']],
+  label: 'Show',
+  options: [['no', 'Active only'], ['yes', 'Archived only']],
   clause: (v) => (v === 'yes' ? { sql: `${a}.archived = 1`, params: [] } : v === 'no' ? { sql: `${a}.archived = 0`, params: [] } : null),
 });
 

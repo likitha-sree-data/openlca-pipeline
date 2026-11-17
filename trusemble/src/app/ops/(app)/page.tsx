@@ -26,6 +26,8 @@ export default async function Today() {
     { n: n.overdue, text: n.overdue === 1 ? 'follow-up is overdue' : 'follow-ups are overdue', cta: 'See overdue', href: '/ops/requests', tone: 'warn' },
     { n: n.noNextStep, text: n.noNextStep === 1 ? 'request has no next step' : 'requests have no next step', cta: 'Give each an owner and a date', href: '/ops/requests?needs=schedule' },
     { n: n.suggestions, text: n.suggestions === 1 ? 'suggested match is waiting for a yes or no' : 'suggested matches are waiting for a yes or no', cta: 'Review matches', href: '/ops/matches' },
+    { n: n.readyToShow, text: n.readyToShow === 1 ? 'project is ready to show on the website' : 'projects are ready to show on the website', cta: 'See them', href: '/ops/projects?show=ready' },
+    { n: n.staleProgramPages, text: n.staleProgramPages === 1 ? 'funding program has not been looked at in 90 days' : 'funding programs have not been looked at in 90 days', cta: 'Look at them', href: '/ops/funding' },
     { n: n.toCheck, text: n.toCheck === 1 ? 'record is waiting to be checked' : 'records are waiting to be checked', cta: 'Start checking', href: '/ops/check' },
     { n: n.problems, text: n.problems === 1 ? 'data problem to look at' : 'data problems to look at', cta: 'Look at them', href: '/ops/data-quality' },
   ];
