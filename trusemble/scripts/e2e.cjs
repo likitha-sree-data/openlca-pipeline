@@ -165,6 +165,49 @@ const check = (cond, m) => (cond ? pass(m) : fail(m));
   await go('/ops/requests?show=mine');
   check((await body()).includes('Introduced') || (await body()).includes('E2E: send the program list'), 'the Mine filter shows requests assigned to me');
 
+  // groups and people: add a person, stop contacting them, merge a duplicate group
+  const twin = `E2E Twin Group ${RUN}`;
+  const ids = [];
+  for (let i = 0; i < 2; i++) {
+    await go('/ops/organizations/new');
+    await page.locator('#name').fill(twin);
+    await page.locator('#type').selectOption('hoa');
+    await page.locator('#county').fill('Deschutes County');
+    await page.locator('#state').selectOption('OR');
+    await page.getByRole('button', { name: /Create organization/ }).click();
+    await page.waitForURL(/\/ops\/organizations\/\d+/);
+    ids.push(page.url().match(/organizations\/(\d+)/)[1]);
+  }
+  check((await body()).includes('May be listed twice'), 'a group with the same name is flagged as possibly listed twice');
+  await go(`/ops/contacts/new?org_id=${ids[0]}`);
+  await page.locator('#name').fill(`E2E Person ${RUN}`);
+  await page.locator('#email').fill('e2e.person@example.org');
+  await page.getByRole('button', { name: /Create contact/ }).click();
+  await page.waitForURL(/\/ops\/contacts\/\d+/);
+  check((await body()).includes('Reach them') && (await page.getByRole('link', { name: /e2e.person@example.org/ }).count()) === 1, 'a contact page offers a one-click email');
+  await page.getByRole('button', { name: 'Add to the outreach list' }).click();
+  await page.getByText(/On the list, added by/).waitFor({ timeout: 5000 });
+  check(true, 'one click adds a person to the outreach list and shows where they are on it');
+  await page.getByText('They asked us to stop').click();
+  await page.locator('#reason').fill('Asked by phone');
+  await page.getByRole('button', { name: 'Mark as do not contact' }).click();
+  await page.getByText('OK to contact again').waitFor({ timeout: 5000 });
+  check((await page.getByRole('link', { name: /e2e.person@example.org/ }).count()) === 0, 'do not contact hides the email button');
+  await page.getByRole('button', { name: 'OK to contact again' }).click();
+  await page.getByText('They asked us to stop').waitFor({ timeout: 5000 });
+  await go(`/ops/organizations/${ids[1]}`);
+  await page.getByText('Merge it into this group…').click();
+  await page.getByRole('button', { name: 'Merge it into this group' }).click();
+  await page.getByText(/Merged\. Moved/).waitFor({ timeout: 5000 });
+  check((await body()).includes('into this group'), 'merging confirms what moved');
+  await go(`/ops/organizations/${ids[0]}`);
+  check((await body()).includes('Archived'), 'the merged-away group is archived');
+  await go(`/ops/organizations/${ids[1]}`);
+  check((await body()).includes(`E2E Person ${RUN}`), 'the person moved to the group that was kept');
+  await go('/ops/contacts?show=noreach');
+  check((await body()).includes('Contacts'), 'the contact filters load');
+  await shot('ops-group', false);
+
   // a project: cannot be shown until it says what the work is; showing and hiding changes the public site
   await go('/ops/projects/new');
   await page.locator('#name').fill(`E2E Ridge break ${RUN}`);
@@ -231,6 +274,7 @@ const check = (cond, m) => (cond ? pass(m) : fail(m));
   await page.getByRole('button', { name: /Create organization/ }).click();
   await page.waitForURL(/\/ops\/organizations\/\d+/);
   check((await body()).includes('Created.'), 'organization created');
+  await page.getByText('Edit all the details').click();
   await page.locator('#website').fill('not-a-url');
   await page.getByRole('button', { name: 'Save changes' }).click();
   await page.getByText(/must start with http/).waitFor({ timeout: 5000 });
@@ -240,7 +284,7 @@ const check = (cond, m) => (cond ? pass(m) : fail(m));
   await page.getByText('Saved.').waitFor({ timeout: 5000 });
   check(true, 'organization saved');
   await page.getByRole('button', { name: 'Mark as checked' }).click();
-  await page.getByText(/Checked against its source/).first().waitFor({ timeout: 5000 });
+  await page.getByText(/Compared with its source/).first().waitFor({ timeout: 5000 });
   check(true, 'organization verified');
 
   // import flow

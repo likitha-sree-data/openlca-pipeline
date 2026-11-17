@@ -39,10 +39,21 @@ export function programReadiness(r: Row, today = todayIso()): Readiness {
   ]);
 }
 
-type Table = 'projects' | 'programs';
+type Table = 'projects' | 'programs' | 'organizations';
+
+/** What a group needs before it appears as a marker on the public map. */
+export function organizationReadiness(r: Row): Readiness {
+  return build([
+    { key: 'place', label: 'Has a county and a state', ok: text(r.county) && text(r.state), required: true, fix: 'Add the county and state.' },
+    { key: 'kind', label: 'Says what kind of group it is', ok: !!r.type && r.type !== 'other', required: false, fix: 'Choose a kind (for example Firewise community or Foundation).' },
+    { key: 'map', label: 'Has a spot on the map', ok: num(r.lat) && num(r.lng), required: false, fix: 'Add a latitude and longitude, or it will not appear on the map.' },
+    { key: 'website', label: 'Has a website', ok: !!safeHref(r.website as string | null), required: false, fix: 'Add the group\'s website (https://...).' },
+    { key: 'checked', label: 'A person has checked it against its source', ok: r.verification === 'verified', required: false, fix: 'Open "Check data" and compare it with the source.' },
+  ]);
+}
 
 export function readinessOf(table: Table, row: Row, today = todayIso()): Readiness {
-  return table === 'projects' ? projectReadiness(row) : programReadiness(row, today);
+  return table === 'projects' ? projectReadiness(row) : table === 'organizations' ? organizationReadiness(row) : programReadiness(row, today);
 }
 
 /** Show a record on the website, or hide it. Showing is refused until the required items are in place. */

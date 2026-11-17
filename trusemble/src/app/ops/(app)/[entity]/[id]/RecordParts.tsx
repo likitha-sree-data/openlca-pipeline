@@ -10,16 +10,16 @@ import { PublishForm } from './PublishForm';
 type Row = Record<string, string | number | null>;
 
 /** "Can the public see this, and if not, what is missing?" with one button. */
-export function PublishCard({ table, id, row }: { table: 'projects' | 'programs'; id: number; row: Row }) {
+export function PublishCard({ table, id, row }: { table: 'projects' | 'programs' | 'organizations'; id: number; row: Row }) {
   const r = readinessOf(table, row);
   const shown = !!row.published;
-  const href = shown ? (table === 'projects' ? `/projects/${id}` : '/funding') : null;
+  const href = shown ? (table === 'projects' ? `/projects/${id}` : table === 'programs' ? '/funding' : '/projects?layers=communities,agencies,partners') : null;
   return (
     <section className="card" style={{ marginTop: 0 }} aria-labelledby="web">
       <h2 id="web">On the website</h2>
       <p style={{ margin: '8px 0 10px' }}>
         {shown ? <span className="pill ok">Shown on the website</span> : <span className="pill quiet">Hidden from the website</span>}
-        {href && <> <Link className="link small" href={href}>{table === 'projects' ? 'See it' : 'See the funding page'}</Link></>}
+        {href && <> <Link className="link small" href={href}>{table === 'projects' ? 'See it' : table === 'programs' ? 'See the funding page' : 'See the map'}</Link></>}
       </p>
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
         {r.checks.map((c) => (

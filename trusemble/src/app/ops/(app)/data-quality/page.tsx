@@ -48,7 +48,8 @@ export default function DataQuality() {
               </div>
               <form action={resolveIssueAction.bind(null, i.id)} className="row">
                 {i.kind === 'conflict' && <button name="action" value="use_incoming" className="btn sm">Use imported value</button>}
-                <button name="action" value="resolve" className="btn sm primary">Resolve</button>
+                {i.kind === 'duplicate' && <Link className="btn sm primary" href={`/ops/organizations/${i.entity_id}`}>Open and merge</Link>}
+                <button name="action" value="resolve" className={`btn sm ${i.kind === 'duplicate' ? '' : 'primary'}`}>Mark resolved</button>
                 <button name="action" value="dismiss" className="btn sm ghost">Dismiss</button>
               </form>
             </div>))}</div>)}

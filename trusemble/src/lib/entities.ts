@@ -72,7 +72,8 @@ export const ENTITIES: Record<EntityKey, EntityCfg> = {
     description: 'Firewise sites, HOAs, fire districts, agencies, funders and crews', titleCol: 'name', newLabel: 'New organization', verifiable: true, hasPublished: true,
     from: 'organizations o', 
     select: `o.id, o.name, o.type, o.county, o.state, o.website, o.verification, o.published, o.archived,
-      (SELECT COUNT(*) FROM projects p WHERE p.owner_org_id = o.id AND p.archived = 0) AS projects`,
+      (SELECT COUNT(*) FROM projects p WHERE p.owner_org_id = o.id AND p.archived = 0) AS projects,
+      (SELECT COUNT(*) FROM contacts c WHERE c.org_id = o.id AND c.archived = 0) AS people`,
     search: ['o.name', 'o.county', 'o.website', 'o.state'],
     orderBy: 'o.name COLLATE NOCASE',
     fields: [

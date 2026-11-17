@@ -21,6 +21,7 @@ import { isRealDate, todayIso } from '@/lib/format';
 import { alertChannels, sendAlert } from '@/lib/notify';
 import { markIntroduced, setNextStep } from '@/lib/requests';
 import { markLooked, setPublished } from '@/lib/publish';
+import { addToOutreach, mergeOrganizations, setContactOwner, setDoNotContact } from '@/lib/people';
 
 export type ActionState = { ok?: boolean; message?: string; error?: string; fieldErrors?: Record<string, string>; values?: Record<string, string> };
 
@@ -442,12 +443,12 @@ export async function introducedAction(id: number, _prev: ActionState, fd: FormD
 }
 
 // ---------------------------------------------------------------- show or hide on the website
-export async function publishAction(table: 'projects' | 'programs', id: number, show: boolean, _prev: ActionState, _fd: FormData): Promise<ActionState> {
+export async function publishAction(table: 'projects' | 'programs' | 'organizations', id: number, show: boolean, _prev: ActionState, _fd: FormData): Promise<ActionState> {
   const user = await requireUser();
-  if (table !== 'projects' && table !== 'programs') return { error: 'Unknown record type.' };
+  if (table !== 'projects' && table !== 'programs' && table !== 'organizations') return { error: 'Unknown record type.' };
   const r = setPublished(table, id, show, user.id);
   if (!r.ok) return { error: r.error };
-  revalidatePath(`/ops/${table === 'programs' ? 'funding' : 'projects'}/${id}`);
+  revalidatePath(`/ops/${table === 'programs' ? 'funding' : table}/${id}`);
   revalidatePath('/ops');
   return { ok: true, message: show ? 'It is now on the website.' : 'It is hidden from the website.' };
 }
@@ -456,4 +457,35 @@ export async function lookedAction(id: number) {
   const user = await requireUser();
   markLooked(id, user.id);
   revalidatePath(`/ops/funding/${id}`);
+}
+
+// ---------------------------------------------------------------- people and groups
+export async function mergeOrganizationAction(intoId: number, fromId: number, _prev: ActionState, _fd: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const r = mergeOrganizations(fromId, intoId, user.id);
+  if (!r.ok) return { error: r.error };
+  revalidatePath('/ops/data-quality');
+  redirect(`/ops/organizations/${intoId}?notice=${encodeURIComponent(`Merged. Moved ${r.moved.projects} projects, ${r.moved.people} people and ${r.moved.requests} requests into this group.`)}`);
+}
+
+export async function doNotContactAction(contactId: number, flag: boolean, fd: FormData) {
+  const user = await requireUser();
+  setDoNotContact(contactId, flag, clean(fd.get('reason')), user.id);
+  revalidatePath(`/ops/contacts/${contactId}`);
+}
+
+export async function outreachAction(contactId: number, _prev: ActionState, _fd: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const r = addToOutreach(contactId, user.id);
+  if (!r.ok) return { error: r.error };
+  revalidatePath(`/ops/contacts/${contactId}`);
+  revalidatePath('/ops/pilot');
+  return { ok: true, message: 'Added to the outreach list.' };
+}
+
+export async function contactOwnerAction(contactId: number, fd: FormData) {
+  const user = await requireUser();
+  const owner = /^\d+$/.test(String(fd.get('owner_id') ?? '')) ? Number(fd.get('owner_id')) : null;
+  setContactOwner(contactId, owner, user.id);
+  revalidatePath(`/ops/contacts/${contactId}`);
 }

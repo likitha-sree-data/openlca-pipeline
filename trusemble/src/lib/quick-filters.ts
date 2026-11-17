@@ -25,6 +25,21 @@ export function quickFilters(entity: string, today: string, userId: number): Rec
         past: { label: 'Closed', sql: 'pr.window_end < ?', params: [today] },
         hidden: { label: 'Hidden', sql: 'pr.published = 0', params: [] },
       };
+    case 'organizations':
+      return {
+        funders: { label: 'Funders', sql: "o.type IN ('foundation','investor','federal_agency','state_agency')", params: [] },
+        communities: { label: 'Communities', sql: "o.type IN ('firewise_community','hoa')", params: [] },
+        nowebsite: { label: 'No website', sql: "(o.website IS NULL OR o.website = '')", params: [] },
+        unsorted: { label: 'Kind not set', sql: "o.type = 'other'", params: [] },
+        dupes: { label: 'May be listed twice', sql: "EXISTS (SELECT 1 FROM organizations o2 WHERE o2.name_key = o.name_key AND o2.id != o.id AND o2.archived = 0 AND o.name_key != '' AND (o.state IS o2.state OR o.state IS NULL OR o2.state IS NULL) AND (o.county IS o2.county OR o.county IS NULL OR o2.county IS NULL))", params: [] },
+      };
+    case 'contacts':
+      return {
+        mine: { label: 'Mine', sql: 'c.owner_id = ?', params: [userId] },
+        noreach: { label: 'No email or phone', sql: "(c.email IS NULL OR c.email = '') AND (c.phone IS NULL OR c.phone = '')", params: [] },
+        noorg: { label: 'No group', sql: 'c.org_id IS NULL', params: [] },
+        dnc: { label: 'Do not contact', sql: 'c.do_not_contact = 1', params: [] },
+      };
     default:
       return {};
   }

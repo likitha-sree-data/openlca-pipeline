@@ -139,7 +139,7 @@ function Table({ cfg, rows }: { cfg: EntityCfg; rows: Row[] }) {
   if (rows.length === 0) return <Empty what={cfg.plural} />;
   const link = (r: Row, text: React.ReactNode) => <Link href={`/ops/${cfg.slug}/${r.id}`}>{text}</Link>;
   const head: Record<string, string[]> = {
-    organizations: ['Name', 'Kind', 'County', 'Projects', 'Checked?'],
+    organizations: ['Name', 'Kind', 'County', 'People', 'Projects', 'Checked?'],
     projects: ['Project', 'Owner', 'Where it stands', 'County', 'Needs', 'Asking for', 'On the website'],
     contacts: ['Name', 'Organization', 'Role', 'Contact details', 'Owner'],
     programs: ['Program', 'Run by', 'Kind', 'Deadline', 'How much', 'Where', 'Who to call'],
@@ -154,7 +154,7 @@ function Table({ cfg, rows }: { cfg: EntityCfg; rows: Row[] }) {
             <tr key={String(r.id)} style={r.archived ? { opacity: 0.55 } : undefined}>
               {cfg.key === 'organizations' && <>
                 <td className="name">{link(r, r.name)}{r.website && <span className="sub">{String(r.website).replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>}</td>
-                <td>{label(ORG_TYPES, String(r.type))}</td><td>{r.county ?? '–'}{r.state ? <span className="sub">{r.state}</span> : null}</td><td className="num">{r.projects}</td><td><VerifPill v={String(r.verification)} /></td>
+                <td>{r.type === 'other' ? <span className="muted">Not set</span> : label(ORG_TYPES, String(r.type))}</td><td>{r.county ?? '–'}{r.state ? <span className="sub">{r.state}</span> : null}</td><td className="num">{r.people}</td><td className="num">{r.projects}</td><td><VerifPill v={String(r.verification)} /></td>
               </>}
               {cfg.key === 'projects' && <>
                 <td className="name" style={{ minWidth: 220 }}>{link(r, r.name)}</td><td>{r.owner ?? '–'}</td>
