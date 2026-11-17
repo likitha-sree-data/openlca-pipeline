@@ -1,9 +1,0 @@
-node_modules
-.next
-data/pglite
-data/uploads
-.env
-.env.local
-*.tsbuildinfo
-next-env.d.ts
-coverage
